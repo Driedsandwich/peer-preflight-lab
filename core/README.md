@@ -26,6 +26,8 @@ A missing link map (HTTP 404 or 410) supplies no bindings. An unreadable link ma
 | --- | --- |
 | Block | At least one `block` finding, such as an invalid network or an instruction takeover pattern. |
 | Caution | At least one `caution` finding or any pinned change, including an instruction edit. |
+| Caution (field request) | An instruction asks, after a request verb, for a field outside `allowedFields` and not negated. Besides fixed names (home address, email, phone, name, password, API key) and fields in the network's allow lists, it covers snake_case names in the forms `<name> field`, `field <name>` and `the <name> value`, and fields marked private, unshared, secret, hidden or personal. |
+| Pass (contact asks) | An instruction that only asks or confirms the visitor's own email, phone, address or name in conversation yields an `asks-visitor-contact` finding with severity `info`. Including such a value in requests, bookings or partner calls, or asking for fields marked private or taken from `sly_data`, stays a Caution. Passwords and API keys are unchanged. |
 | Pass | The remaining cases. `info` findings, such as inter-agent cycles or peer router declarations, allow Pass. |
 
 ## Specification and runtime
@@ -45,6 +47,6 @@ Artifact lookup follows `remote.js:6–25` and `engine.js:209–224, 261–269, 
 
 ## Tests and Unverified
 
-Run `node --test "files/tests/*.test.mjs"` from the containing directory. **20 tests** use local fixtures and injected fetch.
+Run `node --test "files/tests/*.test.mjs"` from the containing directory. **29 tests** use local fixtures and injected fetch.
 
 **Unverified.** Real browser behavior, live CORS and redirects, and peer behavior at execution time. A browser may reject CORS before exposing a response, or withhold the header from JavaScript. Fetch exposes the final URL, so intermediate redirect destinations are unverified. Instruction findings use English phrase matching. Coverage of other languages, alternate wording and obfuscation is unverified. An SRI finding reports the declared digest's form. Bundle content and digest validity at execution time are unverified.

@@ -293,16 +293,60 @@ const privateFields = [
   ["api_key", apiKey],
 ];
 
+const snakeId = "[a-z0-9]+(?:_[a-z0-9]+)+";
+const privateAdjective = "(?:private|unshared|secret|hidden|personal)";
+const fillerWord = /^(?:a|an|the|any|all|every|each|some|other|others|more|or|and|of|your|their|its|these|those|such|no|other|extra|additional|more)$/i;
+// Fields named in the instruction text rather than on the fixed list: [pattern, name from match].
+const namedFieldRules = [
+  [new RegExp("\\b(" + snakeId + ")[ \\t]+fields?\\b", "g"), (match) => match[1]],
+  [new RegExp("\\b[Ff]ields?[ \\t]+(" + snakeId + ")\\b", "g"), (match) => match[1]],
+  [new RegExp("\\b[Tt]he[ \\t]+(" + snakeId + ")[ \\t]+values?\\b", "g"), (match) => match[1]],
+  [new RegExp("\\b" + privateAdjective + "[ \\t]+(" + snakeId + ")\\b", "gi"), (match) => match[1].toLowerCase()],
+  [new RegExp("\\b(" + privateAdjective + ")((?:[ \\t-]+[a-z0-9]+){0,2})[ \\t-]+fields?\\b", "gi"), (match) => {
+    const words = match[2].split(/[ \t-]+/).filter(Boolean);
+    if (words.some((word) => fillerWord.test(word))) return null;
+    return [match[1], ...(words.length ? words : ["field"])].join("_").toLowerCase();
+  }],
+];
+
 const normalizeText = (text) => text.normalize("NFKC").replace(/\p{Cf}/gu, "").replace(/[‘’]/g, "'");
 
-function requested(line, match) {
+// Request verbs found before a match and not negated, as lower-case strings. "required" stands for a trailing "is required".
+function requestVerbs(line, match, verbs = requestVerb) {
   const prefix = line.slice(Math.max(0, match.index - 150), match.index);
-  for (const verb of prefix.matchAll(requestVerb)) {
+  const found = [];
+  for (const verb of prefix.matchAll(verbs)) {
     if (prefix.length - (verb.index + verb[0].length) > 100) continue;
-    if (!negative.test(prefix.slice(0, verb.index)) && !negative.test(prefix)) return true;
+    if (!negative.test(prefix.slice(0, verb.index)) && !negative.test(prefix)) found.push(verb[0].toLowerCase());
   }
-  return !negative.test(prefix) && /^\s+(?:(?:is|are)\s+)?(?:required|needed|must be (?:provided|included|sent))\b/i
-    .test(line.slice(match.index + match[0].length));
+  if (!found.length && !negative.test(prefix) && /^\s+(?:(?:is|are)\s+)?(?:required|needed|must be (?:provided|included|sent))\b/i
+    .test(line.slice(match.index + match[0].length))) found.push("required");
+  return found;
+}
+
+const requested = (line, match) => requestVerbs(line, match).length > 0;
+
+// Contact details a visitor is normally asked for in conversation.
+const contactFields = new Set(["email", "phone", "home_address", "name", "first_name", "last_name"]);
+const contactVerb = new RegExp(requestVerb.source.replace("|transmit)", "|transmit|attach|pass|confirm|verify|gather|check|restate|clarify)"), "gi");
+const askVerbWord = /^(?:ask(?:\s+for)?|request|require|need|get|obtain|collect|retrieve|confirm|verify|gather|check|restate|clarify|required)$/;
+const sendsOutward = /^(?:include|send|forward|attach|submit|post|transmit|share|disclose|reveal|copy|pass|output|print)$/;
+const outwardDestination = /^[^.;]{0,25}?\b(?:in|into|to|with)\s+(?:(?:every|each|all|any|the|your|its|a|an)\s+)*(?:[\w-]+\s+)?(?:requests?|bookings?|reservations?|partners?|downstream|upstream|payloads?|quer(?:y|ies)|urls?|https?:\/\/\S+|websites?|sites?|tools?|agents?)\b/i;
+const messageKind = /\b(?:confirmation|reminder|notification|receipt|marketing|newsletter|follow-up)\s+$/i;
+const privateMarked = /\b(?:private|unshared|secret|hidden)\s+(?:[\w-]+\s+){0,2}$/i;
+const privateContext = /\b(?:sly[\s_-]*data|private[\s_-]+(?:context|data))\b/i;
+
+// "ask" (visitor conversation), "outward" (value goes out) or "none" (nothing about the visitor's own data) for a contact field match.
+function contactUse(clause, match) {
+  const before = clause.slice(0, match.index);
+  if (messageKind.test(before)) return "none";
+  if (privateContext.test(clause) || privateMarked.test(before)) return "outward";
+  const verbs = requestVerbs(clause, match, contactVerb);
+  if (!verbs.length) return "none";
+  if (verbs.some((verb) => sendsOutward.test(verb)) ||
+    outwardDestination.test(clause.slice(match.index + match[0].length))) return "outward";
+  if (verbs.some((verb) => askVerbWord.test(verb))) return "ask";
+  return /\b(?:visitor|user|customer|guest)'s\s+(?:[\w-]+\s+)?$|\b(?:their|your)\s+(?:own\s+)?$/i.test(before) ? "outward" : "none";
 }
 
 function instructionFindings(agents, allowedFields) {
@@ -320,12 +364,14 @@ function instructionFindings(agents, allowedFields) {
     field, new RegExp("\\b" + field.replaceAll("_", "[ _-]") + "\\b", "gi"),
   ])];
   const allowed = new Set(allowedFields);
+  const networkFields = new Set(Array.from(fields, (field) => field.toLowerCase()));
   const findings = [];
   for (const agent of agents) {
     if (typeof agent?.instructions !== "string") continue;
     for (const [index, raw] of agent.instructions.split(/\r\n?|\n/).entries()) {
       const rules = new Set();
       const denied = new Set();
+      const contact = new Set();
       for (const clause of normalizeText(raw).split(/[.!?](?=\s|$)|;/)) {
         for (const [rule, pattern] of takeoverRules) {
           if (Array.from(clause.matchAll(pattern)).some((match) =>
@@ -338,19 +384,36 @@ function instructionFindings(agents, allowedFields) {
         for (const match of explicitFields) {
           if (!allowed.has(match[1]) && requested(clause, match)) denied.add(match[1]);
         }
+        const appearsOutsideSlyRef = (match) => !explicitFields.some((ref) =>
+          match.index >= ref.index && match.index < ref.index + ref[0].length
+        );
+        for (const [pattern, nameOf] of namedFieldRules) {
+          for (const match of clause.matchAll(pattern)) {
+            const field = nameOf(match);
+            if (!field || field === "sly_data" || allowed.has(field) || networkFields.has(field)) continue;
+            if (appearsOutsideSlyRef(match) && requested(clause, match)) denied.add(field);
+          }
+        }
         for (const [field, pattern] of known) {
           if (allowed.has(field)) continue;
-          const appearsOutsideSlyRef = (match) => !explicitFields.some((ref) =>
-            match.index >= ref.index && match.index < ref.index + ref[0].length
-          );
-          if (Array.from(clause.matchAll(pattern)).some((match) =>
-            appearsOutsideSlyRef(match) && requested(clause, match)
-          )) denied.add(field);
+          for (const match of clause.matchAll(pattern)) {
+            if (!appearsOutsideSlyRef(match)) continue;
+            if (!contactFields.has(field)) {
+              if (requested(clause, match)) denied.add(field);
+              continue;
+            }
+            const use = contactUse(clause, match);
+            if (use === "outward") denied.add(field);
+            else if (use === "ask") contact.add(field);
+          }
         }
       }
       const location = { agent: agent.name ?? null, line: index + 1 };
       if (rules.size) findings.push(finding("instruction-takeover", "block", "Instruction takeover pattern",
         "An instruction asks for policy override, disclosure, or credentials.", { ...location, rules: [...rules] }));
+      const asked = [...contact].filter((field) => !denied.has(field)).sort();
+      if (asked.length) findings.push(finding("asks-visitor-contact", "info", "Asks the visitor for contact details",
+        "An instruction asks the visitor for contact details in conversation. Nothing is sent outward.", { ...location, fields: asked }));
       if (denied.size) findings.push(finding("private-field-request", "caution", "Private field requested",
         "An instruction requests fields outside the caller's explicit allow list.", { ...location, fields: [...denied].sort() }));
     }
