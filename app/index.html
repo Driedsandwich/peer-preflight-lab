@@ -6,7 +6,9 @@
   <meta name="referrer" content="no-referrer">
   <title>Peer Preflight</title>
   <link rel="stylesheet" href="./app.css">
+  <link rel="stylesheet" href="./assistant.css">
   <script type="module" src="./app.js"></script>
+  <script type="module" src="./site.js"></script>
 </head>
 <body>
   <header class="masthead">
@@ -22,7 +24,7 @@
     </div>
     <form id="check-form" class="check-form" novalidate>
       <label class="visually-hidden" for="peer-url">Peer network URL</label>
-      <input id="peer-url" type="url" placeholder="https://peer.example/network" required autocomplete="off" spellcheck="false">
+      <input id="peer-url" type="url" maxlength="2048" placeholder="https://peer.example/network" required autocomplete="off" spellcheck="false">
       <button class="primary" type="submit">Check</button>
     </form>
     <p id="check-status" class="notice" role="status"></p>
@@ -34,10 +36,6 @@
       <div class="demo">
         <button id="try-demo" type="button">Try the update demo</button>
         <p>This demo starts from a pin of an older version of this sample peer, saved in advance. It replaces any saved tours entry.</p>
-      </div>
-      <div class="read-note">
-        <p>Check only reads the peer's public files (its manifest, network and links) without cookies or credentials. Nothing about you or your site is sent, no AI model runs, and nothing costs money.</p>
-        <p>For cross-origin reads, the browser sends this page's origin for CORS. Pin and Block are recorded only in this browser and are never sent anywhere.</p>
       </div>
     </section>
 
@@ -77,6 +75,27 @@
       <p id="lock-status" class="notice" role="status"></p>
     </div>
 
+    <div class="read-note">
+      <p id="check-privacy">Check reads only the peer's public manifest, network and links. It sends no cookies, credentials or details about you or your site. Check uses no model and costs nothing.</p>
+      <p>For cross-origin reads, the browser sends this page's origin for CORS. Pin and Block stay in this browser.</p>
+    </div>
+
+    <section id="assistant" class="panel assistant" aria-labelledby="assistant-heading">
+      <h2 id="assistant-heading">Ask Peer Preflight</h2>
+      <p>Ask what a verdict means, what changed, or how a sample network behaves.</p>
+      <p id="assistant-privacy" class="assistant-note">When you use the assistant, your messages and the page data it reads go to your chosen model provider. You review actions on your local peer lock before the assistant runs them.</p>
+      <p id="assistant-status" role="status">Connecting the assistant… If this message stays, the assistant could not load. You can still use the page directly.</p>
+      <p id="peer-call-status" class="notice" role="status"></p>
+      <div id="agent-app">
+        <div data-ns-slot="header"></div>
+        <div class="assistant-panels">
+          <div data-ns-slot="chat"></div>
+          <div data-ns-slot="agents"></div>
+        </div>
+        <div data-ns-slot="settings"></div>
+      </div>
+    </section>
+
     <section class="panel embed" aria-labelledby="embed-title">
       <div class="embed-intro">
         <h2 id="embed-title">Add to your site</h2>
@@ -93,8 +112,8 @@
     <section id="preflight-api" class="panel api" aria-labelledby="api-title">
       <h2 id="api-title">Preflight API</h2>
       <div>
-        <p>https://peer-preflight.example/preflight</p>
-        <p class="muted">Coming in the next version</p>
+        <p><code id="preflight-url">https://driedsandwich.github.io/peer-preflight-lab/app/preflight</code></p>
+        <p class="muted">Other agentic sites can call this network to check a peer's public files.</p>
       </div>
     </section>
 

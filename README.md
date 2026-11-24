@@ -2,7 +2,7 @@
 
 A static, two-origin test bench for participants building their first agentic website. Use the same caller, peer fixtures and observations across different entries. The inspector reads real page state. The inference used for repeatable checks is local and deterministic.
 
-The [Peer Preflight prototype](app/index.html) checks public peer files and compares updates with a browser-local pin. See the [prototype guide](app/README.md) for local setup.
+The [Peer Preflight app](app/index.html) checks public peer files, compares updates with a browser-local pin, and publishes a callable assistant network. See the [app guide](app/README.md) for setup and verification.
 
 **Start with the seven buttons at `lab.html`.** The [two-origin guide](serve_two_origins.md) gives the public addresses, the local server commands, the consent sequence and the expected ledger. The ordinary assistant and BYOK settings are at `index.html`. [File inventory](FILELIST.txt)
 

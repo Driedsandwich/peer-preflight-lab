@@ -1,5 +1,5 @@
 import { peerOrigin } from "../lab-caller/origins.js";
-import { actionControls, browserGet, checkPeer, clearLock, exportLock, saveDecision, samples, seedDemo } from "./preflight.js";
+import { actionControls, actionReport, browserGet, clearLock, exportLock, inspectPublicPeer, lockKey, saveDecision, samples, seedDemo, validatePeerUrl } from "./preflight.js";
 
 
 const legend = [
@@ -23,16 +23,22 @@ const evidenceLabels = {
 };
 const byId = (id) => document.getElementById(id);
 const storage = {
-  getItem: (key) => window.localStorage.getItem(key),
-  setItem: (key, value) => window.localStorage.setItem(key, value),
-  removeItem: (key) => window.localStorage.removeItem(key),
+  getItem: (key) => globalThis.localStorage.getItem(key),
+  setItem: (key, value) => globalThis.localStorage.setItem(key, value),
+  removeItem: (key) => globalThis.localStorage.removeItem(key),
 };
 const form = byId("check-form");
 const input = byId("peer-url");
 const checkButton = form.querySelector("button");
 const actionArea = byId("decision-actions");
 const reasons = byId("reason-list");
-const api = window.peerPreflight = { lastResult: null };
+const api = { lastResult: null };
+if (typeof window !== "undefined") window.peerPreflight = api;
+const networkUrl = new URL("./preflight", import.meta.url);
+byId("preflight-url").textContent = networkUrl.href;
+let latestCheck = null;
+let lockVersion = 0;
+let lastSaved;
 const sampleUrl = (name) => peerOrigin + "/" + name;
 const shortHash = (hash) => hash.slice(0, 7);
 
@@ -90,7 +96,7 @@ for (const { name, description, expect } of samples) {
     text.append(badge);
     button.setAttribute("aria-describedby", explanation.id + " " + badge.id);
   }
-  button.addEventListener("click", () => runCheck(sampleUrl(name)));
+  button.addEventListener("click", () => page.check(sampleUrl(name)));
   item.append(button, text);
   byId("sample-list").append(item);
 }
@@ -234,18 +240,10 @@ function renderActions(check) {
       });
     } else {
       if (disabled) button.title = "A version fingerprint is needed to save a decision.";
-      button.addEventListener("click", () => {
-        try {
-          saveDecision(storage, check, id === "block" ? "Block" : check.result.verdict);
-          const message = id === "block"
-            ? "Blocked in this browser only. The decision is saved in your local peer lock."
-            : "Pinned in this browser only. The next check compares against " + shortHash(check.result.fingerprint) + ".";
-          const pinButton = actionArea.querySelector('[data-action="pin"]');
-          if (id === "block" && pinButton) pinButton.disabled = true;
-          notice("lock-status", message, "success");
-        } catch {
-          notice("lock-status", "Could not write to this browser's local peer lock.", "error");
-        }
+      button.addEventListener("click", async () => {
+        const { peer, fingerprint } = check.result;
+        const receipt = await page.savePeer({ url: peer.url, fingerprint }, id);
+        if (!receipt.ok) notice("lock-status", receipt.reason, "error");
       });
     }
     wrapper.append(button, note);
@@ -266,10 +264,10 @@ function showResult(check, demo) {
   renderReasons(result.findings);
   renderChanges(result, demo);
   renderActions(check);
+  latestCheck = check;
   api.lastResult = result;
   byId("samples").hidden = true;
   for (const id of ["result", "changes", "decision-actions", "show-samples"]) byId(id).hidden = false;
-  title.focus();
 }
 
 async function runCheck(url, { demo = false } = {}) {
@@ -282,19 +280,25 @@ async function runCheck(url, { demo = false } = {}) {
   notice("check-status", "Checking public files…");
   const request = new AbortController();
   const timeout = setTimeout(() => request.abort(), 15000);
-  const fetchWithTimeout = (resource, options) => fetch(resource, { ...options, signal: request.signal });
   try {
     if (demo) {
-      const response = await browserGet(fetchWithTimeout, new URL("./demo/tours-v1.json", import.meta.url));
+      const response = await browserGet((resource, options) => fetch(resource, { ...options, signal: request.signal }),
+        new URL("./demo/tours-v1.json", import.meta.url));
       if (!response.ok) throw new Error("The saved tours demo could not be read.");
       await seedDemo(storage, input.value, await response.json());
     }
-    const check = await checkPeer(input.value, {
-      fetch: fetchWithTimeout, callerOrigin: location.origin, storage,
+    const check = await inspectPublicPeer(input.value, {
+      signal: request.signal, callerOrigin: location.origin, storage,
       onStorageError: () => notice("lock-status", "Could not read this browser's local peer lock.", "error"),
     });
+    if (!check.ok) {
+      input.setAttribute("aria-invalid", "true");
+      notice("check-status", check.reason, "warning");
+      return;
+    }
     notice("check-status");
     showResult(check, demo);
+    byId("result-title").focus();
   } catch (error) {
     if (demo) {
       notice("check-status", "Could not start the update demo. Check that the demo pin and browser storage are available.", "error");
@@ -312,13 +316,13 @@ async function runCheck(url, { demo = false } = {}) {
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
-  runCheck(input.value);
+  page.check(input.value);
 });
 input.addEventListener("input", () => {
   if (input.hasAttribute("aria-invalid")) notice("check-status");
   input.removeAttribute("aria-invalid");
 });
-byId("try-demo").addEventListener("click", () => runCheck(sampleUrl("tours"), { demo: true }));
+byId("try-demo").addEventListener("click", () => page.check(sampleUrl("tours"), { demo: true }));
 byId("show-samples").addEventListener("click", () => {
   for (const id of ["result", "changes", "decision-actions", "show-samples"]) byId(id).hidden = true;
   byId("samples").hidden = false;
@@ -326,25 +330,145 @@ byId("show-samples").addEventListener("click", () => {
   byId("sample-list").querySelector("button").focus();
 });
 
-byId("export-lock").addEventListener("click", () => {
-  try {
-    const url = URL.createObjectURL(new Blob([exportLock(storage)], { type: "application/json" }));
+function lockState() {
+  const current = storage.getItem(lockKey);
+  if (current !== lastSaved) {
+    lockVersion++;
+    lastSaved = current;
+  }
+  return { version: lockVersion, peers: JSON.parse(exportLock({ getItem: () => current })).peers };
+}
+
+const failure = (reason, field) => ({ ok: false, reason, ...(field ? { field } : {}) });
+
+export const page = {
+  check: runCheck,
+
+  async checkPeer({ url }, signal) {
+    const check = await inspectPublicPeer(url, { callerOrigin: location.origin, storage, signal });
+    return check.ok ? { ok: true, ...actionReport(check.result) } : check;
+  },
+
+  readResult() {
+    let lock;
+    try {
+      const { version, peers } = lockState();
+      lock = { version, count: Object.keys(peers).length };
+    } catch {
+      lock = { reason: "Could not read this browser's local peer lock." };
+    }
+    return {
+      result: latestCheck ? actionReport(structuredClone(latestCheck.result)) : null,
+      lock,
+      page: {
+        url: new URL("./", import.meta.url).href,
+        checkPrivacy: byId("check-privacy").textContent,
+        assistantPrivacy: byId("assistant-privacy").textContent,
+        samples: Object.fromEntries(samples.map(({ name }) => [name, sampleUrl(name)])),
+      },
+    };
+  },
+
+  async savePeer({ url, fingerprint }, kind, confirm, signal) {
+    const input = validatePeerUrl(url);
+    if (!input.ok) return input;
+    if (typeof fingerprint !== "string" || !/^[a-f0-9]{64}$/.test(fingerprint)) {
+      return failure("Use the full fingerprint from a completed check.", "fingerprint");
+    }
+    let before;
+    try {
+      before = lockState();
+    } catch {
+      return failure("Could not read this browser's local peer lock.");
+    }
+    const check = latestCheck?.result.peer.url === input.url && latestCheck.result.fingerprint === fingerprint
+      ? latestCheck
+      : await inspectPublicPeer(input.url, { callerOrigin: location.origin, storage, signal });
+    if (check.ok === false) return check;
+    const { result } = check;
+    if (!result.fingerprint || result.fingerprint !== fingerprint) return failure("The checked version no longer matches. Check the peer again.", "fingerprint");
+    if (kind === "pin" && (result.verdict === "Block" || before.peers[input.url]?.verdict === "Block")) {
+      return failure("A blocked version cannot be pinned. Review the findings or clear the local block and check again.");
+    }
+    if (confirm && !await confirm(result)) {
+      return { ok: false, cancelled: true, reason: "The visitor kept the current lock." };
+    }
+    const blocking = kind === "block";
+    try {
+      if (signal?.aborted || lockState().version !== before.version) {
+        return failure("The request or the local lock changed. Check the peer again.");
+      }
+      saveDecision(storage, check, blocking ? "Block" : result.verdict);
+    } catch {
+      return failure("Could not write to this browser's local peer lock.");
+    }
+    const message = blocking
+      ? "Blocked in this browser only. The decision is saved in your local peer lock."
+      : "Pinned in this browser only. The next check compares against " + shortHash(fingerprint) + ".";
+    if (blocking && latestCheck?.result.peer.url === input.url) {
+      const pinButton = actionArea.querySelector('[data-action="pin"]');
+      if (pinButton) pinButton.disabled = true;
+    }
+    notice("lock-status", message, "success");
+    return { ok: true, url: input.url, fingerprint, verdict: blocking ? "Block" : result.verdict };
+  },
+
+  exportLock() {
+    let contents;
+    try {
+      contents = exportLock(storage);
+    } catch {
+      return failure("Could not export this browser's local peer lock.");
+    }
+    const url = URL.createObjectURL(new Blob([contents], { type: "application/json" }));
     const link = element("a");
     link.href = url;
     link.download = "peers.lock.json";
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     notice("lock-status", "Exported peers.lock.json.", "success");
-  } catch {
-    notice("lock-status", "Could not export this browser's local peer lock.", "error");
-  }
+    return { ok: true, filename: link.download };
+  },
+
+  reviewClearLock({ expectedVersion }) {
+    try {
+      const { version, peers } = lockState();
+      if (version !== expectedVersion) return failure("The local lock changed. Read its current version and try again.");
+      const count = Object.keys(peers).length;
+      if (!count) return failure("The local peer lock is empty.");
+      return { ok: true, count };
+    } catch {
+      return failure("Could not read this browser's local peer lock.");
+    }
+  },
+
+  clearLock(args) {
+    const review = page.reviewClearLock(args);
+    if (!review.ok) return review;
+    try {
+      clearLock(storage);
+    } catch {
+      return failure("Could not clear this browser's local peer lock.");
+    }
+    notice("lock-status", "Cleared this browser's local peer lock.", "success");
+    return { ok: true, count: review.count };
+  },
+};
+
+byId("export-lock").addEventListener("click", () => {
+  const receipt = page.exportLock();
+  if (!receipt.ok) notice("lock-status", receipt.reason, "error");
 });
 byId("clear-lock").addEventListener("click", () => {
-  try {
-    clearLock(storage);
-    notice("lock-status", "Cleared this browser's local peer lock.", "success");
-  } catch {
-    notice("lock-status", "Could not clear this browser's local peer lock.", "error");
+  const args = { expectedVersion: page.readResult().lock.version };
+  const check = page.reviewClearLock(args);
+  if (!check.ok) {
+    notice("lock-status", check.reason, "error");
+    return;
+  }
+  if (globalThis.confirm("Clear the local peer lock? This removes all " + check.count + " saved decisions and cannot be undone.")) {
+    const receipt = page.clearLock(args);
+    if (!receipt.ok) notice("lock-status", receipt.reason, "error");
   }
 });
 byId("copy-snippet").addEventListener("click", async () => {

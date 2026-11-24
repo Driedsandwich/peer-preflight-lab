@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Peer Preflight embed demo</title>
+  <style>
+    body {
+      max-width: 36rem;
+      margin: 3rem auto;
+      padding-inline: 1.25rem;
+      background: #f5f6f3;
+      color: #292f2c;
+      font: 1rem/1.5 system-ui, sans-serif;
+    }
+    peer-preflight {
+      display: block;
+      padding: 0.75rem 1rem;
+      border: 1px solid #d5d9d2;
+      border-radius: 0.5rem;
+      background: #fff;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Peer Preflight embed demo</h1>
+    <script type="module" src="./peer-preflight.js"></script>
+    <peer-preflight pin="./demo.peers.lock.json"></peer-preflight>
+  </main>
+</body>
+</html>

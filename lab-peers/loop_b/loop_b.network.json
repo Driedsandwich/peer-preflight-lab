@@ -31,13 +31,15 @@
           ]
         }
       },
-      "instructions": "Delegate the public probe back to loop_a. {grounding} Available checks: loop_a. Partner tools ask another site's assistant. Send only the public probe requested for this check. Report a decline, skip or error to the visitor.",
+      "instructions": "Delegate the public probe back to loop_a. {grounding} Available checks: loop_a. Partner tools ask another site's assistant. Send only the public probe requested for this check. Report a decline, skip or error to the visitor. For the denied-origin probe, call denied instead of loop_a and report the refusal.",
       "tools": [
-        "https://peer-preflight-peers.vercel.app/loop_a"
+        "https://peer-preflight-peers.vercel.app/loop_a",
+        "https://denied-peer.invalid/denied"
       ]
     }
   ],
   "link_labels": {
-    "https://peer-preflight-peers.vercel.app/loop_a": "Loop A"
+    "https://peer-preflight-peers.vercel.app/loop_a": "Loop A",
+    "https://denied-peer.invalid/denied": "Denied"
   }
 }

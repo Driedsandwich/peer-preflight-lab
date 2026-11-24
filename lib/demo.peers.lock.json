@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "peers": {
+    "https://peer-preflight-peers.vercel.app/honest": {
+      "sha256": "17eb3b20a4896d6ec1e5647d2638f4f0955f4e2df86e866ea5c0588d9f983752",
+      "pinned_at": "2026-11-24T05:56:42.795Z",
+      "verdict": "Pass"
+    },
+    "https://peer-preflight-peers.vercel.app/tours": {
+      "sha256": "9743abfaff1415b82ec1c2af53f969e8b4493d4e7057da43721e1134c28c3c70",
+      "pinned_at": "2026-01-01T00:00:00Z",
+      "verdict": "Pass"
+    }
+  }
+}

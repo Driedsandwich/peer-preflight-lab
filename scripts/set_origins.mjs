@@ -1,4 +1,4 @@
-// Switch the lab between its public addresses and its local-test addresses.
+// Switch Peer Preflight and the lab between its public addresses and its local-test addresses.
 //
 //   node scripts/set_origins.mjs --public      public addresses (GitHub Pages caller, Vercel peers)
 //   node scripts/set_origins.mjs --local       the loopback set, for trying the lab on this machine
@@ -36,7 +36,8 @@ if (!target && !args.includes("--check")) {
 // Every file that carries an address by hand. Generated files are not listed:
 // the build rewrites them from these.
 async function sources() {
-  const files = ["lab-caller/foundation.hocon", "lab-caller/agent-manifest.json", "lab-caller/links.json",
+  const appHocon = "app/preflight.hocon";
+  const files = [appHocon, "app/agent-manifest.json", "lab-caller/foundation.hocon", "lab-caller/agent-manifest.json", "lab-caller/links.json",
     "lab-peers/agent-manifest.json", "lab-peers/links.json", "lab-peers/_redirects"];
   const folders = (await readdir(path.join(root, "lab-peers"), { withFileTypes: true }))
     .filter(entry => entry.isDirectory()).map(entry => entry.name).sort();
@@ -48,10 +49,22 @@ async function sources() {
       if (["agent-manifest.json", "links.json", "_redirects"].includes(name)) files.push(rel);
     }
   }
-  return { files, hocons: ["lab-caller/foundation.hocon", ...hocons] };
+  return { files, hocons: [appHocon, "lab-caller/foundation.hocon", ...hocons] };
 }
 
 const { files, hocons } = await sources();
+
+async function checkAppOrigins(set) {
+  const manifest = JSON.parse(await readFile(path.join(root, "app/agent-manifest.json"), "utf8"));
+  const network = await readFile(path.join(root, "app/preflight.hocon"), "utf8");
+  if (manifest.peer_policy?.mode !== "closed" ||
+      JSON.stringify(manifest.allowed_peers) !== JSON.stringify([set.peers]) ||
+      JSON.stringify(manifest.peer_policy.deny_origins) !== JSON.stringify([set.denied]) ||
+      !network.includes(set.peers + "/honest") ||
+      Object.values(presets).some(other => other !== set && network.includes(other.peers + "/"))) {
+    throw new Error("The app's peer addresses do not match the active preset.");
+  }
+}
 
 if (target) {
   // Two passes through placeholders, so one role's new value is never rewritten as another's old one.
@@ -78,6 +91,7 @@ if (target) {
 }
 
 if (args.includes("--no-build")) process.exit(0);
+await checkAppOrigins(presets[target ?? active]);
 
 function build(hocon, ...flags) {
   const dir = path.dirname(path.join(root, hocon));

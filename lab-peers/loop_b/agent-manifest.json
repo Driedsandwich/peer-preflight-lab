@@ -24,8 +24,10 @@
     "https://peer-preflight-peers.vercel.app"
   ],
   "peer_policy": {
-    "mode": "closed",
-    "deny_origins": []
+    "mode": "open",
+    "deny_origins": [
+      "https://denied-peer.invalid"
+    ]
   },
   "agent_mcp": {
     "protocol": "nsdeploy-agent-mcp/v1",

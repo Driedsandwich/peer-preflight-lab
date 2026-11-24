@@ -1,6 +1,6 @@
 import { diff, fetchPeer, inspect, readLock, resolvePeer, verdict, writeLock } from "../core/src/preflight-core.mjs";
 
-const lockKey = "peer-preflight.lock.v1";
+export const lockKey = "peer-preflight.lock.v1";
 const severityOrder = { block: 0, caution: 1, info: 2, pass: 3 };
 const makeFinding = (id, severity, title, detail, evidence = {}) => ({ id, severity, title, detail, evidence });
 
@@ -25,7 +25,7 @@ export function browserGet(fetch, url, { redirect = "follow", cache = "no-store"
 }
 
 function readSaved(storage) {
-  const text = storage.getItem(lockKey);
+  const text = storage?.getItem(lockKey) ?? null;
   if (text === null) return { lock: { version: 1, peers: {} }, snapshots: {} };
   const saved = JSON.parse(text);
   return { lock: readLock(saved.lock), snapshots: saved.snapshots };
@@ -120,6 +120,41 @@ export async function checkPeer(input, { fetch, callerOrigin, storage, onStorage
   }
   findings.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
   return { snapshot, result: { peer, verdict: verdict(findings, changes), findings, changes, fingerprint: snapshot.sha256 } };
+}
+
+export const maxPeerUrlLength = 2048;
+
+export function validatePeerUrl(value) {
+  const url = typeof value === "string" ? value.trim() : "";
+  if (url.length > maxPeerUrlLength) return { ok: false, reason: "Use a peer network URL of at most 2048 characters.", field: "url" };
+  if (!url) return { ok: false, reason: "Enter a peer network URL or choose a sample.", field: "url" };
+  try {
+    const { base, name } = resolvePeer(url);
+    return { ok: true, url: base + "/" + name };
+  } catch (error) {
+    return { ok: false, reason: error.message, field: "url" };
+  }
+}
+
+export async function inspectPublicPeer(url, { callerOrigin, storage, signal, onStorageError } = {}) {
+  const input = validatePeerUrl(url);
+  if (!input.ok) return input;
+  const timeout = AbortSignal.timeout(15000);
+  const requestSignal = signal ? AbortSignal.any([timeout, signal]) : timeout;
+  const check = await checkPeer(input.url, {
+    fetch: (resource, options) => fetch(resource, { ...options, signal: requestSignal }),
+    callerOrigin,
+    storage,
+    onStorageError,
+  });
+  return { ok: true, ...check };
+}
+
+// Keep the identifying fields even when the full evidence exceeds the runtime's receipt limit.
+export function actionReport(result) {
+  if (new TextEncoder().encode(JSON.stringify(result)).length < 60000) return result;
+  const { peer, verdict, fingerprint } = result;
+  return { peer, verdict, fingerprint, detail: "The full evidence exceeds the assistant's response limit. Open the page and use Check to read it." };
 }
 
 export function actionControls(result) {

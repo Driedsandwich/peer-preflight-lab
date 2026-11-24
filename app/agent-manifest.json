@@ -1,0 +1,83 @@
+{
+  "brand": "Peer Preflight Assistant",
+  "networks": [
+    {
+      "name": "preflight",
+      "front_man": "preflight",
+      "hocon": "./preflight.network.json",
+      "description": "Explain peer network checks, compare versions, and review decisions saved in this browser.",
+      "tags": [
+        "agentified-website"
+      ],
+      "sample_queries": [
+        "What did my latest check find?",
+        "Ask the Honest sample to answer a public probe.",
+        "Check the Honest sample and ask me before pinning it.",
+        "Ask before clearing my local peer lock.",
+        "Can you change another site's network?"
+      ]
+    }
+  ],
+  "llm_router": {
+    "base_url": "https://api.otari.ai/api/v1",
+    "mock": false,
+    "byok_router": "https://api.otari.ai/api/v1"
+  },
+  "allowed_peers": [
+    "https://peer-preflight-peers.vercel.app"
+  ],
+  "peer_policy": {
+    "mode": "closed",
+    "deny_origins": [
+      "https://denied-peer.invalid"
+    ]
+  },
+  "agent_mcp": {
+    "protocol": "nsdeploy-agent-mcp/v1",
+    "network": "preflight",
+    "front_man": "preflight",
+    "available": false,
+    "reason": "This is a static bundle; a public MCP facade requires an application host."
+  },
+  "theme": {
+    "primary": "#303537"
+  },
+  "linking": {
+    "protocol": "nsdeploy-link/v1",
+    "exports": [
+      {
+        "network": "preflight",
+        "front_man": "preflight",
+        "aliases": [
+          "preflight"
+        ],
+        "url": "preflight"
+      }
+    ],
+    "imports": [],
+    "link_updates": {
+      "mode": "browser-local"
+    }
+  },
+  "deployment": {
+    "mode": "static",
+    "self_contained_runtime": true,
+    "browser_mock": false,
+    "direct_byok": true,
+    "direct_mcp_requires_cors": true,
+    "public_mcp_facade": false
+  },
+  "actions": {
+    "version": 1,
+    "module": "./site-actions.js",
+    "bridge": "./bridge/action-bridge.html",
+    "agentTools": [
+      "check_peer",
+      "read_result",
+      "pin_version",
+      "block_peer",
+      "export_lock",
+      "clear_lock"
+    ]
+  }
+}
