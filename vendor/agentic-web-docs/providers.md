@@ -1,0 +1,181 @@
+# LLM providers
+
+An open agentic website like one generated with `nsdeploy` can talk to its LLM through the
+OpenAI Chat Completions API. It sends
+`POST <router>/chat/completions` with your key as `Authorization: Bearer <key>`, and it
+reads `GET <router>/models` to check the model name.
+It requires the provider to allow browser calls (CORS).
+
+## Which providers work
+
+| Provider | Provider URL | Example model | Direct from the browser (static bundle) |
+|---|---|---|---|
+| [OpenAI](#openai) | `https://api.openai.com/v1` | `gpt-4.1-mini` | Works |
+| [OpenRouter](#openrouter) | `https://openrouter.ai/api/v1` | `anthropic/claude-haiku-5.5` | Works |
+| [Anthropic](#anthropic) | `https://api.anthropic.com/v1` | `claude-haiku-4-5` | Newer sites only, if your organization allows it |
+| [LiteLLM, self-hosted](#litellm-self-hosted) | `http://127.0.0.1:4000/v1` | your model alias | Works |
+| [Ollama, local](#ollama-local) | `http://127.0.0.1:11434/v1` | `gemma4:e4b` | Local testing only |
+| [Otari](otari.md) | `https://api.otari.ai/api/v1`, or `https://eu.api.otari.ai/api/v1` for an EU key (`otk_v1_eu_`) | `alibaba/qwen3.8-flash` | Works, but [some models fail](otari.md#hosted-otari-otariai) |
+
+If Anthropic refuses browser calls from your site, use OpenRouter or LiteLLM for Claude models.
+
+## Connecting a site to a provider
+
+**With a static bundle** like the one generated with `nsdeploy`,
+the browser calls the provider itself. Build with
+`--static-bundle --upstream <provider URL>`, or in the `⚙ AI model settings` panel, set
+Provider URL under `Advanced settings (optional)` to the provider's URL. This only works for providers that allow browser calls (CORS).
+
+Things to know for every provider:
+
+- **Model check.** If the router lists its models, the panel refuses a model that isn't
+  on the list with `Model "X" is not published by this upstream`. If the list can't be
+  read, there is no check, so type the exact model ID.
+- **Pick a model that makes tool calls.** The front agent hands work to other agents
+  through tool calls. A model that answers in plain text instead won't delegate.
+- **One harmless console error.** With the router set straight to a cloud provider, the
+  console shows a CORS error for `<provider origin>/agent-manifest.json`. nsdeploy checks
+  that address, ignores the failure and carries on.
+- **Limit your key.** Use a key with a spending limit, and consider revoking it when done.
+
+## OpenAI
+
+- This is nsdeploy's default `--upstream`, so it can be left out when you build the bundle.
+- OpenAI allows browser calls, so static bundles work.
+- Model IDs look like `gpt-4.1-mini`. The model check uses OpenAI's model list.
+- Some newer OpenAI models limit tool calls on Chat Completions. Check OpenAI's docs
+  before you pick a model.
+
+## OpenRouter
+
+- Base URL: `https://openrouter.ai/api/v1`.
+- Model IDs are `vendor/model`, such as `openai/gpt-4.1-mini` or
+  `anthropic/claude-haiku-5.5`.
+- OpenRouter allows browser calls, so static bundles work. It's the easiest way to use
+  Claude models from a browser-only site.
+- Tool use depends on the model, so pick one that reliably calls tools.
+- API keys start with `sk-or-`.
+
+**Connect with OpenRouter.** Sites built with the agentify-website skill, including the
+examples in this repo, have a `Connect with OpenRouter` button in the `⚙ AI model settings`
+panel. The visitor signs in to OpenRouter and approves a key for the site, with nothing to
+copy. The panel saves the key and fills in the free model `google/gemma-4-31b-it:free`.
+The site owner registers nothing. Things to know:
+
+- **One key per site.** Each site gets its own key, named after the site and its host. The
+  panel links to the key's page on OpenRouter, where the visitor sees what it spends, sets
+  a spending limit or revokes it. Connecting again on the same site replaces the saved key.
+- **Kept in the browser.** The key is saved like a pasted key, so any script on the site
+  can read it. OpenRouter advises keeping such keys on a server, but a static site has none.
+- **Free model limits.** Free `:free` models allow 20 requests a minute, and 50 a day until
+  the account has bought 10 credits. One chat turn can take several requests. For more,
+  enter a paid model under `Advanced settings (optional)`, such as `qwen/qwen3.8-flash`.
+- **Free model data.** Free providers may keep or train on prompts. The default's provider,
+  Google AI Studio, does not train on them but keeps them for 55 days. OpenRouter shows
+  each provider's policy on the model's page, and a visitor's OpenRouter privacy settings
+  decide whether providers that may train on prompts can be used.
+- **Where it works.** The page must be served over https, or opened on your own computer.
+  OpenRouter's docs promise `localhost` callbacks on any port. `127.0.0.1` has not been
+  tested yet. The button is hidden when the page is inside a frame.
+
+## Anthropic
+
+- Anthropic's OpenAI-compatible endpoint is `https://api.anthropic.com/v1`. It accepts
+  your Anthropic key as a Bearer token, and tool calls work.
+- **Newer sites only.** Anthropic allows browser calls only when the request carries the
+  header `anthropic-dangerous-direct-browser-access: true`. Sites generated with
+  `nsdeploy` since November 11, 2026 send it, so the browser can call Anthropic with no
+  router or gateway in between. The examples in this repo send it too. Older sites don't,
+  so generate an older site again to get it.
+- **Your organization must allow it.** Some Anthropic organizations refuse browser calls.
+  The chat then shows
+  `LLM HTTP 401: ... CORS requests are not allowed for this Organization because of its settings`.
+  The same key still works from a server. If you see this, ask Anthropic support, or use
+  OpenRouter or LiteLLM instead.
+- **No model check.** The browser can't read this endpoint's model list, so type an exact
+  model ID such as `claude-haiku-4-5`.
+
+## LiteLLM, self-hosted
+
+[LiteLLM](https://docs.litellm.ai/) is a proxy you run yourself. Your provider keys stay
+on the LiteLLM server, and the browser only holds a LiteLLM key.
+
+1. Install it:
+   ```shell
+   pip install 'litellm[proxy]'
+   ```
+1. Write `config.yaml`. Each `model_name` is the alias that site visitors type as Model:
+   ```yaml
+   model_list:
+     - model_name: gpt-4.1-mini
+       litellm_params:
+         model: openai/gpt-4.1-mini
+         api_key: os.environ/OPENAI_API_KEY
+     - model_name: claude-haiku-4-5
+       litellm_params:
+         model: anthropic/claude-haiku-4-5
+         api_key: os.environ/ANTHROPIC_API_KEY
+   general_settings:
+     master_key: os.environ/LITELLM_MASTER_KEY
+   ```
+1. Set `OPENAI_API_KEY` and `ANTHROPIC_API_KEY` in your shell, make a master key, and
+   start the proxy:
+   ```shell
+   export LITELLM_MASTER_KEY="sk-$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
+   litellm --config config.yaml --host 127.0.0.1 --port 4000
+   ```
+1. Point the site at `http://127.0.0.1:4000/v1` as Provider URL.
+
+Things to know:
+
+- **Master key.** The proxy won't start without one. Use it yourself for testing, but
+  give anyone else a LiteLLM virtual key, never the master key.
+- **CORS.** LiteLLM allows every origin by default, which is why static bundles work. It
+  also means any website can use your proxy with a valid key. Set `LITELLM_CORS_ORIGINS`
+  to limit it to your site's origin.
+- **Model names.** The model list shows your `model_name` aliases, so visitors type the
+  alias, such as `gpt-4.1-mini`.
+- **For a public site,** run LiteLLM on a server behind HTTPS, and set Provider URL
+  to its address, such as `https://litellm.example.com/v1`. Set `LITELLM_CORS_ORIGINS`
+  to your site's origin, such as `https://example.com` (a comma-separated list for more
+  than one), and give each visitor a virtual key. Browsers block an `https` page from
+  calling a plain `http` address other than `localhost`.
+
+## Ollama, local
+
+[Ollama](https://ollama.com) runs open models on your own machine, so no provider key
+is needed. It's a quick way to try a site locally.
+
+1. Install Ollama and pull a model that makes tool calls:
+   ```shell
+   ollama pull gemma4:e4b
+   ```
+1. Serve the site from `127.0.0.1` or `localhost`, as in the
+   [Quickstart](../quickstart.md#manually-generate-a-website-bundle).
+1. In the `⚙ AI model settings` panel, set:
+   - API key: any text, such as `ollama`. Ollama ignores it, but the site won't send a
+     request with an empty key.
+   - Under `Advanced settings (optional)`, Model: `gemma4:e4b`
+   - Under `Advanced settings (optional)`, Provider URL: `http://127.0.0.1:11434/v1`
+
+Things to know:
+
+- **CORS.** By default, Ollama allows pages on `localhost` and `127.0.0.1` at any port,
+  and refuses other origins with 403. To allow more, set `OLLAMA_ORIGINS` to a
+  comma-separated list of origins and restart Ollama. These are added to the defaults.
+  The [Ollama FAQ](https://docs.ollama.com/faq) shows how to set it on each OS.
+- **Don't use `*`.** Ollama has no keys, so any page allowed by `OLLAMA_ORIGINS` can use
+  your models.
+- **Model IDs** are Ollama's tags, as `ollama list` shows them. The model check uses
+  Ollama's model list, so a model you haven't pulled is refused.
+- **Only for your own machine.** `127.0.0.1` is always the visitor's own computer, so a
+  site pointed at it works only for people who run Ollama themselves.
+- **Local models are slow.** A multi-agent turn can take a minute or more.
+- **For a public site,** run Ollama on a server behind a gateway that has keys and
+  allows your site's origin, such as a
+  [self-hosted Otari](otari.md#self-hosted-otari-with-local-models). Don't expose Ollama
+  itself on the internet: it has no keys, so anyone could use it.
+
+## Otari
+
+See [Otari](otari.md) for details.

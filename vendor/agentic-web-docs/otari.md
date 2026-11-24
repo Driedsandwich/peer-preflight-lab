@@ -1,0 +1,224 @@
+# Using Otari
+
+[Otari](https://otari.ai) is an open-source LLM gateway with an OpenAI-compatible API.
+An open agentic website can use it as its LLM router. Mozilla runs a hosted Otari, and
+you can also run one yourself. For other providers, see [LLM providers](providers.md).
+
+Both work from a static bundle:
+
+| Router | Static bundle (`--static-bundle`) |
+|---|---|
+| Hosted Otari (`otari.ai`) | Works, but some models fail on every request. See [Hosted Otari](#hosted-otari-otariai). |
+| Self-hosted Otari | Works, if Otari allows the site's origin |
+
+## How the page reaches the LLM
+
+In the `⚙ AI model settings` panel, the `API key` field and the `Model` and `Provider URL`
+fields under `Advanced settings (optional)` decide where LLM requests go. The browser
+sends each request to the Provider URL.
+
+**Static bundle.** `nsdeploy`'s `--static-bundle` builds plain files with no server and no relay.
+The browser calls the router itself, so the router must allow browser calls (CORS).
+An empty Provider URL means the `--upstream` URL given at build time.
+
+Hosted Otari allows browser calls, which is why the static bundle in the
+[Quickstart](../quickstart.md#manually-generate-a-website-bundle) uses it by default.
+OpenAI allows them too.
+
+## Hosted Otari (otari.ai)
+
+Hosted Otari allows browser calls from any site, so a static site can call it directly.
+In the `⚙ AI model settings` panel, set:
+
+- API key: an API key from your [otari.ai](https://otari.ai) account. It starts with `otk_`.
+- Under `Advanced settings (optional)`, Model: `alibaba/qwen3.8-flash`
+- Under `Advanced settings (optional)`, Provider URL: `https://api.otari.ai/api/v1`, or
+  `https://eu.api.otari.ai/api/v1` if your key starts with `otk_v1_eu_`
+
+Select `Save and start`, then chat.
+
+On sites built with the agentify-website skill, including the examples in this repo,
+pasting the key is enough: the panel fills in the Model and Provider URL above, including
+the EU Provider URL for an EU key.
+
+**Connect with Otari.** On those sites, the `⚙ AI model settings` panel also has a `Connect with Otari` button. The visitor signs in to otari.ai, picks a workspace
+and approves a key for the site, with nothing to copy. The panel saves the key and fills in
+`alibaba/qwen3.8-flash` and the Provider URL of the key's region. The site owner registers
+nothing: the site's address is its client ID. Things to know:
+
+- **The visitor sets the limits.** The consent screen suggests a $5 spending limit and a
+  30-day expiry, and the visitor can change or remove either before approving. The key is
+  also bound by the visitor's own Otari budgets and workspace access.
+- **One key per site.** The key is named after the site's host, such as
+  `someone.github.io (OAuth)`, on the API keys page on otari.ai, where the visitor sees what
+  it spends or revokes it. The panel links there. Connecting again on the same site
+  replaces the saved key.
+- **Unverified sites.** Otari has not reviewed the site, and its consent screen says so. A
+  site's name there is its host, so on a host that serves many people's pages by path, it
+  does not say whose page asked.
+- **Kept in the browser.** The key is saved like a pasted key, so any script on the site
+  can read it. The spending limit and expiry bound what a stolen key can spend.
+- **Where it works.** The page must be served over https, or opened on your own computer
+  at `localhost` or `127.0.0.1` on any port. The button is hidden when the page is inside a
+  frame.
+
+Things to know:
+
+- **Base URL.** It must end in `/api/v1`. Plain `/v1` returns 404, and the browser
+  reports that as a CORS error.
+- **EU accounts.** An otari.ai key belongs to one region. A key that starts with
+  `otk_v1_eu_` works only at `https://eu.api.otari.ai/api/v1`, and other otari.ai keys
+  work only at `https://api.otari.ai/api/v1`. The wrong gateway answers `421`. Older
+  sites fill in `https://api.otari.ai/api/v1` for every Otari key. On those, set Provider
+  URL to the EU address yourself.
+- **Pick a chat model that makes tool calls.** `GET /api/v1/models` lists every model.
+  Look for `"type": "chat"` and `tools` in `supported_parameters`.
+- **Some models fail on every request.** With `alibaba/qwen3-14b` and
+  `alibaba/qwen3-30b-a3b`, every chat fails with
+  `LLM HTTP 400: This model's maximum context length is 40960 tokens. However, you requested 40960 output tokens ...`.
+  The site doesn't set an output limit (`max_tokens`), and for these models the request
+  then asks for the model's whole context window as output. That leaves no room for the
+  prompt. Other models with the same window, such as `alibaba/qwen3-32b`, don't have this
+  problem.
+  - **On a site,** pick another model, such as `alibaba/qwen3.8-flash`. The site's
+    request has no `max_tokens`, and the settings panel has no field for it.
+  - **From your own code,** add `max_tokens` to the JSON body of the
+    `POST /api/v1/chat/completions` request, next to `model` and `messages`. It's a body
+    field, not a header:
+    ```json
+    {
+      "model": "alibaba/qwen3-14b",
+      "messages": [{"role": "user", "content": "Hi"}],
+      "max_tokens": 4096
+    }
+    ```
+    The prompt and `max_tokens` together must fit in the context window. For example, a
+    2,257-token prompt works with any `max_tokens` up to 32,768 on these models, but
+    fails with 39,000.
+
+## Self-hosted Otari with local models
+
+This runs Otari in Docker in front of [Ollama](https://ollama.com) on your machine, so
+no LLM provider key is needed.
+
+### 1. Pull a model
+
+```shell
+ollama pull gemma4:e4b
+```
+
+### 2. Make a key
+
+Make a folder for the Otari config and key:
+
+```shell
+mkdir otari
+cd otari
+```
+
+You make up the Otari key yourself. Otari creates every key listed in its config when
+it starts. This command writes a random key to `key.env` without printing it:
+
+```shell
+(umask 077; python3 -c "import secrets; print('OTARI_LOCAL_API_KEY=tk-' + secrets.token_urlsafe(48))" > key.env)
+set -a; . ./key.env; set +a
+```
+
+The key only works on your local Otari. Keep `key.env` out of git.
+
+### 3. Write `config.yml`
+
+```yaml
+database_url: "sqlite+aiosqlite:///./otari.db"
+default_pricing: true
+providers:
+  ollama:
+    api_base: "http://host.docker.internal:11434"
+    models: [gemma4:e4b]
+pricing:
+  "ollama:gemma4:e4b":
+    input_price_per_million: 0
+    output_price_per_million: 0
+cors_allow_origins:
+  # "*" lets any website call Otari from the browser. Each call still needs a valid key.
+  # To allow only your own sites, list their exact origins (scheme, host and port) instead.
+  - "*"
+api_keys:
+  local-test:
+    secret: ${OTARI_LOCAL_API_KEY}
+    user_id: local-test
+```
+
+- **`pricing`:** Otari refuses a model with no price (402). Give each local model you
+  want to use a zero-price entry like the one above.
+- **`cors_allow_origins`:** the origins of pages allowed to call Otari from the browser.
+  - `"*"` allows pages on any website. Otari still refuses a call without a valid key.
+  - To allow only specific sites, list their exact origins instead: scheme, host and
+    port, with no path. `http://localhost:8080` and `http://127.0.0.1:8080` are
+    different origins.
+  - The [Quickstart](../quickstart.md#manually-generate-a-website-bundle) serves its
+    bundle at `http://127.0.0.1:8080`.
+
+### 4. Start Otari
+
+From the folder with `config.yml`, in the shell where you loaded `key.env`:
+
+```shell
+export OTARI_CONFIG_YAML="$(cat config.yml)"
+docker run --rm --name otari-local --publish 127.0.0.1:8042:8000 \
+  --env OTARI_LOCAL_API_KEY --env OTARI_CONFIG_YAML \
+  mzdotai/otari:0.36.0 otari serve
+```
+
+Otari's base URL is now `http://127.0.0.1:8042/api/v1`. On Linux, `host.docker.internal`
+may need `--add-host=host.docker.internal:host-gateway` on `docker run`.
+
+Otari keeps its database inside the container, so it starts empty each time. That's
+fine here, because it creates the key from `config.yml` when it starts.
+
+### 5. Point the site at it
+
+Open an agentic website in a browser,
+and expand `⚙ AI model settings`:
+
+- API key: the value after `OTARI_LOCAL_API_KEY=` in `key.env`.
+- Under `Advanced settings (optional)`, Model: `google/gemma4-e4b` (or `ollama:gemma4:e4b`; both work).
+- Under `Advanced settings (optional)`, Provider URL: `http://127.0.0.1:8042/api/v1`
+
+Select `Save and start`, then chat.
+
+Things to know:
+
+- **Model IDs.** `GET /api/v1/models` lists local models under catalog-style IDs such as
+  `google/gemma4-e4b`. It also lists other Ollama models found on the host. Those return
+  402 until you add a pricing entry for them.
+- **Local models are slow.** A multi-agent turn can take a minute or more.
+- **For a public site,** run Otari on a server behind HTTPS, and set Provider URL to
+  its address, such as `https://otari.example.com/api/v1`. If `cors_allow_origins` lists
+  exact origins, add your site's origin, such as `https://example.com`. Browsers block an
+  `https` page from calling a plain `http` address other than `localhost`.
+
+## Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| Chat shows `⚠️ Failed to fetch`, console shows "blocked by CORS policy" | The browser is calling a router that doesn't allow this page. Hosted Otari: check that Provider URL ends in `/api/v1`. Self-hosted Otari: add the page's exact origin to `cors_allow_origins`, or use `"*"`, and restart Otari. |
+| 400 "This model's maximum context length is ... However, you requested ... output tokens" | Hosted Otari: this model fails when the request has no `max_tokens`, and the site doesn't send one. Pick another model, such as `alibaba/qwen3.8-flash`. From your own code, add `max_tokens` to the request body, small enough to fit in the context window with the prompt. |
+| The site keeps using an old router | The panel saves your setup in the browser. On `localhost` and `127.0.0.1` it is also kept in a cookie shared by every local port for 180 days, so a router saved for another site follows you. Set Provider URL to the router you want, or clear it to use the site's default, then select `Save and start`. |
+| 400 `invalid_model` | Use an exact model ID from `GET /api/v1/models`. |
+| 402 "No pricing is configured" | Self-hosted: add a `pricing` entry for that model. |
+| 404 "Otari serves its API under /api/v1" | The base URL must end in `/api/v1`, not `/v1`. |
+| 401 "Invalid API key" | The key is wrong. Self-hosted: check that `OTARI_LOCAL_API_KEY` was set in the shell that ran `docker run`. |
+| 421 "This API key belongs to eu.api.otari.ai" | Hosted Otari: the key is for another region. Set Provider URL to the host the message names plus `/api/v1`, such as `https://eu.api.otari.ai/api/v1`, then select `Save and start`. |
+
+## Get help and share feedback
+
+The Otari developers are on the [Mozilla OSAI Discord](https://discord.gg/AzMfpN3VNS).
+Join, select the `agentic-hackathon` role in Channels & Roles, and head to `#otari-ai`.
+
+- **Stuck?** Ask your question in `#otari-ai`.
+- **Hit a bug or a rough edge?** Post it in `#otari-ai` or
+  [open an issue on GitHub](https://github.com/mozilla-ai/otari/issues). Include what you were
+  trying to do, the model you used, and the exact error message.
+- **Want to contribute?** Pull requests on the [Otari repo](https://github.com/mozilla-ai/otari)
+  are welcome.
