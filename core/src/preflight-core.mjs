@@ -50,6 +50,7 @@ async function getArtifact(fetch, requestedUrl) {
       requestedUrl,
       finalUrl: result.url || null,
       accessControlAllowOrigin: result.headers?.get("access-control-allow-origin") ?? null,
+      ...(result.type === "cors" ? { corsVerified: true } : {}),
       status: result.status,
     },
   };
@@ -464,8 +465,9 @@ function declaredDestinations(snapshot, agents, resolvedLinks) {
   return byUrl;
 }
 
-function transportFindings(response) {
+function transportFindings(response, callerOrigin) {
   const findings = [];
+  const caller = webUrl(callerOrigin)?.origin;
   for (const resource of ["manifest", "network", "links"]) {
     const metadata = response?.[resource];
     if (!metadata) continue;
@@ -475,7 +477,8 @@ function transportFindings(response) {
     const to = webUrl(metadata.finalUrl)?.origin;
     if (from && to && from !== to) findings.push(finding("cross-origin-redirect", "caution", "Cross-origin redirect",
       "The final artifact origin differs from its requested origin.", { resource, from, to }));
-    if (metadata.status >= 200 && metadata.status < 300 && !metadata.accessControlAllowOrigin?.trim()) {
+    if (metadata.status >= 200 && metadata.status < 300 && (to ?? from) !== caller &&
+      !metadata.corsVerified && !metadata.accessControlAllowOrigin?.trim()) {
       findings.push(finding("missing-cors", "caution", "CORS header unavailable",
         "Access-Control-Allow-Origin is missing or unavailable to this client.", { resource, origin: to ?? from ?? null }));
     }
@@ -522,7 +525,8 @@ export function inspect(snapshot, { allowedFields = [], callerOrigin, callerRout
     for (const source of sources) newOrigins.get(origin).add(source);
   }
   for (const origin of [...newOrigins.keys()].sort()) {
-    findings.push(finding("new-outbound-origin", "caution", "New outbound origin",
+    const severity = loopback.has(new URL(origin).hostname) ? "info" : "caution";
+    findings.push(finding("new-outbound-origin", severity, "New outbound origin",
       "A declared destination is outside both the caller and peer origins.", { origin, sources: [...newOrigins.get(origin)].sort() }));
   }
 
@@ -538,7 +542,7 @@ export function inspect(snapshot, { allowedFields = [], callerOrigin, callerRout
     ].join(" ");
     findings.push(finding("coded-tools", "caution", "Coded tools declared", detail, { bundle, hasDigest, agents: codedAgents }));
   }
-  findings.push(...transportFindings(response));
+  findings.push(...transportFindings(response, callerOrigin));
   return findings;
 }
 

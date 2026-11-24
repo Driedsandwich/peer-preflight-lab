@@ -2,23 +2,24 @@
 //
 //   node scripts/set_origins.mjs --public      public addresses (GitHub Pages caller, Vercel peers)
 //   node scripts/set_origins.mjs --local       the loopback set, for trying the lab on this machine
-//   node scripts/set_origins.mjs --check       change nothing; run the build check on all 13 sources
+//   node scripts/set_origins.mjs --check       change nothing; check the networks and update demo pin
 //   add --no-build to rewrite the text only
 //
 // The addresses live in lab-caller/origins.js. This script rewrites every hand-written
 // copy of them (HOCON sources, manifests, link maps, the redirect rules) to the chosen
 // set and updates `active` in origins.js. Then it rebuilds the generated files
 // (.network.json, agent-mcp.json, .well-known, bridge) with the vendored build_network.mjs
-// and checks every source. `broken` must fail the build: its invalid source is the point
+// and checks every source and the update demo pin. `broken` must fail the build: its invalid source is the point
 // of that fixture. Any other result stops the script with a non-zero exit code.
 import { readFile, writeFile, readdir } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { buildToursDemo } from "./build_tours_demo.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const originsFile = path.join(root, "lab-caller", "origins.js");
-const { presets } = await import(pathToFileURL(originsFile).href);
+const { active, presets } = await import(pathToFileURL(originsFile).href);
 const builder = path.join(root, "vendor", "agentify-website", "scripts", "build_network.mjs");
 const runtime = path.join(root, "lab-caller", "runtime");
 const roles = ["caller", "peers", "denied"];
@@ -103,3 +104,7 @@ for (const hocon of hocons) {
   console.log(`check ${hocon}: exit ${rc}${fails ? " (expected to fail)" : ""}${ok ? "" : "  <-- UNEXPECTED"}`);
 }
 if (bad) { console.error(bad + " unexpected build result(s)."); process.exit(1); }
+const peerOrigin = presets[target ?? active].peers;
+if (target) await buildToursDemo(peerOrigin, { check: false });
+await buildToursDemo(peerOrigin, { check: true });
+console.log("check app/demo/tours-v1.json: up to date");

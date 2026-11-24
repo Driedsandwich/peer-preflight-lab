@@ -9,7 +9,7 @@ Import from `./src/preflight-core.mjs`.
 | Function | Result |
 | --- | --- |
 | `resolvePeer(url)` | `{ base, name }` from an HTTPS peer URL. Loopback HTTP is supported for development. |
-| `await fetchPeer(url, { fetch })` | `{ manifest, network, links, response, sha256 }`. Requires an exact manifest match, loads the declared JSON or resolved HOCON and the selected network's bindings from `links.json`, then fingerprints `{ manifest, network, links }`. Each response records the requested URL, final URL, status and visible CORS header when available. |
+| `await fetchPeer(url, { fetch })` | `{ manifest, network, links, response, sha256 }`. Requires an exact manifest match, loads the declared JSON or resolved HOCON and the selected network's bindings from `links.json`, then fingerprints `{ manifest, network, links }`. Each response records the requested URL, final URL, status and visible CORS header when available. Browser responses of type `cors` also record `corsVerified: true`. |
 | `await fingerprint(obj)` | Lowercase SHA-256 hex over UTF-8 JSON with recursively sorted object keys and preserved array order. |
 | `inspect(snapshot, { allowedFields, callerOrigin, callerRouter })` | Findings with `id`, `severity`, `title`, `detail` and `evidence`. Supply exact allowed field names. The caller's router URL is optional. |
 | `await diff(pinnedSnapshot, currentSnapshot)` | `changed`, before and after fingerprints, per-agent instruction additions and removals with line numbers, tool and destination additions and removals, and `hasSnapshots`. Retain the pinned snapshot for detailed comparisons. A lock entry alone supports fingerprint comparison. |
@@ -28,6 +28,7 @@ A missing link map (HTTP 404 or 410) supplies no bindings. An unreadable link ma
 | Caution | At least one `caution` finding or any pinned change, including an instruction edit. |
 | Caution (field request) | An instruction asks, after a request verb, for a field outside `allowedFields` and not negated. Besides fixed names (home address, email, phone, name, password, API key) and fields in the network's allow lists, it covers snake_case names in the forms `<name> field`, `field <name>` and `the <name> value`, and fields marked private, unshared, secret, hidden or personal. |
 | Pass (contact asks) | An instruction that only asks or confirms the visitor's own email, phone, address or name in conversation yields an `asks-visitor-contact` finding with severity `info`. Including such a value in requests, bookings or partner calls, or asking for fields marked private or taken from `sly_data`, stays a Caution. Passwords and API keys are unchanged. |
+| Pass (local destinations) | A new outbound destination at `localhost`, `127.0.0.1` or `[::1]` yields an `info` finding. |
 | Pass | The remaining cases. `info` findings, such as inter-agent cycles or peer router declarations, allow Pass. |
 
 ## Specification and runtime
@@ -47,6 +48,6 @@ Artifact lookup follows `remote.js:6–25` and `engine.js:209–224, 261–269, 
 
 ## Tests and Unverified
 
-Run `node --test "files/tests/*.test.mjs"` from the containing directory. **29 tests** use local fixtures and injected fetch.
+Run `node --test "core/tests/*.test.mjs"` from the repository root. **30 tests** use local fixtures and injected fetch.
 
 **Unverified.** Real browser behavior, live CORS and redirects, and peer behavior at execution time. A browser may reject CORS before exposing a response, or withhold the header from JavaScript. Fetch exposes the final URL, so intermediate redirect destinations are unverified. Instruction findings use English phrase matching. Coverage of other languages, alternate wording and obfuscation is unverified. An SRI finding reports the declared digest's form. Bundle content and digest validity at execution time are unverified.

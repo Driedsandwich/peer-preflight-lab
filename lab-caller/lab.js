@@ -48,7 +48,7 @@ function verdict(name, r) {
     case "agent limit": return r.agentsRun.length === 24 && /limit of 24 agent invocations/.test(stops);
     case "denied": return !ran.length && /Policy:/.test(stops);
     case "near_name": return !ran.length && /No published network named/.test(stops);
-    case "redirector": return !ran.length && /fetch 302/.test(stops) ? "Replayed 302 stopped · live redirect 未確認" : "Unexpected redirect fixture result";
+    case "redirector": return !ran.length && /fetch 302/.test(stops) ? "Replayed 302 stopped · live redirect unverified" : "Unexpected redirect fixture result";
     default: return false;
   }
 }
@@ -65,7 +65,7 @@ function show(name, result) {
   if (result.agentsRun.length) lines.push("Agent invocations: " + result.agentsRun.length);
   for (const receipt of result.actions) lines.push("Site action: " + receipt.status + " · " + receipt.result?.check);
   for (const peer of result.peers) lines.push(peer.name + " received fields: " + JSON.stringify(peer.fields));
-  if (name === "sly_snoop") lines.push("Upstream kernel helper: " + result.upstreamKernelKeys.join(", ") + ". Peer return propagation: 未確認.");
+  if (name === "sly_snoop") lines.push("Upstream kernel helper: " + result.upstreamKernelKeys.join(", ") + ". Peer return propagation: unverified.");
   if (name === "default") lines.push("Optional peer calls declined by this local check: " + result.decisions.length);
   else lines.push(...result.stops);
   content.textContent = lines.join("\n");

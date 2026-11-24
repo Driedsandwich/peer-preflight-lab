@@ -144,6 +144,18 @@
       "sample_queries": [
         "Answer the public probe at the end of the depth chain."
       ]
+    },
+    {
+      "name": "tours",
+      "front_man": "tours",
+      "hocon": "./tours/tours.network.json",
+      "description": "Help visitors plan a tour and understand the booking process.",
+      "tags": [
+        "agentified-website"
+      ],
+      "sample_queries": [
+        "Which guided tours are available?"
+      ]
     }
   ],
   "llm_router": {
@@ -267,6 +279,14 @@
           "depth_3"
         ],
         "url": "depth_3"
+      },
+      {
+        "network": "tours",
+        "front_man": "tours",
+        "aliases": [
+          "tours"
+        ],
+        "url": "tours"
       }
     ],
     "imports": [],

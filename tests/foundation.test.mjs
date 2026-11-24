@@ -257,7 +257,7 @@ test("publisher-funded configuration selects the site endpoint without a key and
 
 test("the collection serves the same network files as the individual fixture manifests", async () => {
   const catalog = JSON.parse(await read("lab-peers/agent-manifest.json"));
-  assert.equal(catalog.networks.length, 12);
+  assert.equal(catalog.networks.length, 13);
   for (const entry of catalog.networks) {
     const folder = entry.hocon.split("/")[1];
     const fixture = JSON.parse(await read("lab-peers/" + folder + "/agent-manifest.json"));

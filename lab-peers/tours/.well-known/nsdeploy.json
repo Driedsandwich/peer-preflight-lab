@@ -1,0 +1,17 @@
+{
+  "protocol": "nsdeploy-link/v1",
+  "exports": [
+    {
+      "network": "tours",
+      "front_man": "tours",
+      "aliases": [
+        "tours"
+      ],
+      "url": "tours"
+    }
+  ],
+  "imports": [],
+  "link_updates": {
+    "mode": "browser-local"
+  }
+}

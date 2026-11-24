@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Peer Preflight</title>
+  <link rel="stylesheet" href="./app.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <header class="masthead">
+    <strong class="brand">Peer Preflight</strong>
+    <p>Check another site's agent network before your site lets it run in your visitors' browsers.</p>
+    <a href="#preflight-api">Preflight API</a>
+  </header>
+
+  <main class="workspace">
+    <div class="check-heading">
+      <h1>Check a peer</h1>
+      <button id="show-samples" class="text-button" type="button" hidden>Sample peers</button>
+    </div>
+    <form id="check-form" class="check-form" novalidate>
+      <label class="visually-hidden" for="peer-url">Peer network URL</label>
+      <input id="peer-url" type="url" placeholder="https://peer.example/network" required autocomplete="off" spellcheck="false">
+      <button class="primary" type="submit">Check</button>
+    </form>
+    <p id="check-status" class="notice" role="status"></p>
+
+    <section id="samples" class="panel samples" aria-label="Sample peers">
+      <p class="start"><strong>Start here:</strong> pick a sample peer below, or paste a peer network URL, then press Check.</p>
+      <ul id="sample-list" class="sample-list"></ul>
+      <div class="demo">
+        <button id="try-demo" type="button">Try the update demo</button>
+        <p>This demo starts from a pin of an older version of this sample peer, saved in advance. It replaces any saved tours entry.</p>
+      </div>
+      <div class="read-note">
+        <p>Check only reads the peer's public files (its manifest, network and links) without cookies or credentials. Nothing about you or your site is sent, no AI model runs, and nothing costs money.</p>
+        <p>For cross-origin reads, the browser sends this page's origin for CORS. Pin and Block are recorded only in this browser and are never sent anywhere.</p>
+      </div>
+    </section>
+
+    <section id="result" class="panel result" aria-labelledby="result-title" hidden>
+      <div class="result-header">
+        <div class="decision">
+          <span id="result-shape" class="shape" aria-hidden="true"></span>
+          <div>
+            <h2 id="result-title" tabindex="-1"></h2>
+            <p id="peer-summary"></p>
+          </div>
+        </div>
+        <ul id="result-legend" class="legend" aria-label="Verdict meanings"></ul>
+      </div>
+      <ol id="reason-list" class="reasons"></ol>
+    </section>
+
+    <section id="changes" class="panel changes" aria-labelledby="changes-title" hidden>
+      <div class="changes-heading">
+        <h2 id="changes-title">Changes since pin</h2>
+        <div id="hashes" class="hashes" hidden></div>
+      </div>
+      <div id="no-pin" hidden>
+        <p><strong>No pinned version yet</strong></p>
+        <p class="muted">Pin a checked version in this browser to compare it with a future check.</p>
+      </div>
+      <p id="change-note" class="muted" hidden></p>
+      <ul id="change-list" class="change-list" hidden></ul>
+      <p id="demo-note" class="demo-note muted" hidden>This demo starts from a pin of an older version of this sample peer, saved in advance.</p>
+    </section>
+
+    <div id="decision-actions" class="decision-actions" hidden></div>
+    <div class="lock-tools">
+      <span class="lock-label">Local peer lock</span>
+      <button id="export-lock" class="text-button" type="button">Export peers.lock.json</button>
+      <button id="clear-lock" class="text-button" type="button">Clear lock</button>
+      <p id="lock-status" class="notice" role="status"></p>
+    </div>
+
+    <section class="panel embed" aria-labelledby="embed-title">
+      <div class="embed-intro">
+        <h2 id="embed-title">Add to your site</h2>
+        <p>Coming in the next version</p>
+      </div>
+      <div class="embed-code">
+        <pre><code id="snippet">&lt;script type="module" src="https://peer-preflight.example/preflight.js"&gt;&lt;/script&gt;
+&lt;peer-preflight pin="./peers.lock.json"&gt;&lt;/peer-preflight&gt;</code></pre>
+        <button id="copy-snippet" type="button">Copy</button>
+      </div>
+      <p id="copy-status" class="notice" role="status"></p>
+    </section>
+
+    <section id="preflight-api" class="panel api" aria-labelledby="api-title">
+      <h2 id="api-title">Preflight API</h2>
+      <div>
+        <p>https://peer-preflight.example/preflight</p>
+        <p class="muted">Coming in the next version</p>
+      </div>
+    </section>
+
+    <details class="panel glossary">
+      <summary>Words used here</summary>
+      <ul id="glossary-legend" class="legend" aria-label="Verdict meanings"></ul>
+      <dl>
+        <div><dt>Peer</dt><dd>Another site's agent network.</dd></div>
+        <div><dt>Pin</dt><dd>Save a version in your browser to compare on the next check.</dd></div>
+        <div><dt>Fingerprint</dt><dd>A hash identifying the published files. The comparison shows its first seven characters.</dd></div>
+        <div><dt>Origin</dt><dd>A URL's scheme, hostname and port taken together.</dd></div>
+        <div><dt>Outbound origin</dt><dd>An origin the peer declares as a destination.</dd></div>
+        <div><dt>CORS</dt><dd>The browser's rules for reading files from a different origin.</dd></div>
+        <div><dt>Router</dt><dd>The service that receives requests for an AI model.</dd></div>
+        <div><dt>Agent count</dt><dd>The number of agents defined in the published network.</dd></div>
+      </dl>
+    </details>
+    <noscript><p>Enable JavaScript to check a peer.</p></noscript>
+  </main>
+
+</body>
+</html>

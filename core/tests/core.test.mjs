@@ -248,6 +248,15 @@ test("tool, MCP, links.json, and allowed_peers declarations reveal new outbound 
   assert.deepEqual(outbound[1].evidence.sources, ["links.json"]);
 });
 
+test("loopback outbound destinations are informational on all supported hostnames", async () => {
+  const targets = ["http://127.0.0.1:8081", "http://[::1]:8082", "http://localhost:8083"];
+  const { findings } = await evaluate({ manifest: { allowed_peers: targets } });
+  const outbound = findings.filter(({ id }) => id === "new-outbound-origin");
+  assert.deepEqual(outbound.map(({ evidence, severity }) => [evidence.origin, severity]),
+    targets.map((origin) => [origin, "info"]));
+  assert.equal(verdict(findings), "Pass");
+});
+
 test("one inserted instruction line turns a previously passing peer into Caution", async () => {
   const pinned = await fixture({ network: {
     tools: [agent("guide", "Summarize transit routes.\nList the operating hours.")],

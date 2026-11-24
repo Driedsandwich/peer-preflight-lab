@@ -1,0 +1,44 @@
+{
+  "metadata": {
+    "description": "Help visitors plan a tour and understand the booking process.",
+    "sample_queries": [
+      "Which guided tours are available?"
+    ]
+  },
+  "llm_config": {
+    "model_name": "gpt-4o-mini"
+  },
+  "tools": [
+    {
+      "name": "tours",
+      "function": {
+        "description": "Help visitors plan a tour and understand the booking process.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "request": { "type": "string" }
+          },
+          "required": ["request"]
+        }
+      },
+      "instructions": "Help the visitor choose a tour. Ask the itinerary agent about tours and the booking agent about reservations.",
+      "tools": ["itinerary", "booking"]
+    },
+    {
+      "name": "itinerary",
+      "function": {
+        "description": "Describe sample tour itineraries."
+      },
+      "instructions": "Describe the harbor walk and the lighthouse tour.",
+      "tools": []
+    },
+    {
+      "name": "booking",
+      "function": {
+        "description": "Explain how visitors can request a reservation."
+      },
+      "instructions": "Explain the steps for requesting a reservation.",
+      "tools": []
+    }
+  ]
+}
