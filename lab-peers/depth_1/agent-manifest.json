@@ -1,0 +1,65 @@
+{
+  "brand": "Fixture / depth_1",
+  "networks": [
+    {
+      "name": "depth_1",
+      "front_man": "depth_1",
+      "hocon": "./depth_1.network.json",
+      "description": "Delegate the public probe to depth_2.",
+      "tags": [
+        "agentified-website"
+      ],
+      "sample_queries": [
+        "Delegate the public probe to depth_2."
+      ]
+    }
+  ],
+  "llm_router": {
+    "base_url": "browser://mock",
+    "mock": true,
+    "byok_router": "https://api.otari.ai/api/v1",
+    "publisher_funded": false
+  },
+  "allowed_peers": [
+    "http://localhost:8082"
+  ],
+  "peer_policy": {
+    "mode": "closed",
+    "deny_origins": []
+  },
+  "agent_mcp": {
+    "protocol": "nsdeploy-agent-mcp/v1",
+    "network": "depth_1",
+    "front_man": "depth_1",
+    "available": false,
+    "reason": "This is a static bundle; a public MCP facade requires an application host."
+  },
+  "theme": {
+    "primary": "#174f4b"
+  },
+  "linking": {
+    "protocol": "nsdeploy-link/v1",
+    "exports": [
+      {
+        "network": "depth_1",
+        "front_man": "depth_1",
+        "aliases": [
+          "depth_1"
+        ],
+        "url": "depth_1"
+      }
+    ],
+    "imports": [],
+    "link_updates": {
+      "mode": "browser-local"
+    }
+  },
+  "deployment": {
+    "mode": "static",
+    "self_contained_runtime": false,
+    "browser_mock": false,
+    "direct_byok": false,
+    "direct_mcp_requires_cors": true,
+    "public_mcp_facade": false
+  }
+}

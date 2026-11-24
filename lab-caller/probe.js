@@ -71,6 +71,8 @@ export function observedFetch({ caller, fetchAsset, ledger, onRequest, replayRed
   };
 }
 
+const segment = ref => String(ref).split("/").filter(Boolean).pop();
+
 export async function runProbe(name, { caller, consent, fetchAsset, onRequest, setupEngine, replayRedirect = false } = {}) {
   const originalFetch = globalThis.fetch;
   const ledger = [];
@@ -91,6 +93,19 @@ export async function runProbe(name, { caller, consent, fetchAsset, onRequest, s
     return decision;
   };
   if (name === "depth") engine.registry.maxDepth = 2;
+  // The runner words a depth stop like a cycle stop ("already in this request's
+  // call chain"). Keep the registry's own COMPOSITION_DEPTH message for the page.
+  const depthStops = [];
+  const resolveRemote = engine.resolveRemote.bind(engine);
+  engine.resolveRemote = async (ref, chain, ...rest) => {
+    try { return await resolveRemote(ref, chain, ...rest); } catch (error) {
+      if (error?.code === "COMPOSITION_DEPTH") {
+        depthStops.push("Stopped: " + segment(ref) + " was not contacted: " + error.message +
+          " (chain: " + chain.map(key => key.split("::").pop()).join(" → ") + ").");
+      }
+      throw error;
+    }
+  };
   page.selection = name;
   globalThis.fetch = observedFetch({ caller, fetchAsset: fetchAsset || originalFetch.bind(globalThis), ledger, onRequest, replayRedirect });
   try {
@@ -109,10 +124,17 @@ export async function runProbe(name, { caller, consent, fetchAsset, onRequest, s
     }
     const events = engine.trace.events;
     const calls = events.filter(e => e.kind === "remote_call" && e.phase === "start");
+    const hops = calls.map(e => e.network);
+    const cycleStops = events.filter(e => e.kind === "composition_skip").map(e =>
+      "Stopped: " + segment(e.target) + " is already in this request's call chain (cycle " +
+      [...hops, segment(e.target)].join(" → ") + "): " + e.reason + ".");
     const stops = events.filter(e => ["composition_limit", "composition_skip"].includes(e.kind) ||
       (e.phase === "end" && e.status === "error") ||
       (e.kind === "tool_result" && /^(Skipped |The user declined)/.test(e.preview)))
-      .map(e => e.reason || e.error || e.preview);
+      .filter(e => e.kind !== "composition_skip")
+      .map(e => e.reason || e.error || e.preview)
+      .filter(text => !depthStops.length || !/already in this request's call chain/.test(text))
+      .concat(cycleStops, depthStops);
     const modelCalls = events.filter(e => e.kind === "model_call" && e.phase === "start");
     const front = network.getAgentSpec(network.findFrontMan());
     return {

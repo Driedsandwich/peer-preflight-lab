@@ -172,11 +172,18 @@ test("loop_a reaches loop_b and the active ancestor is omitted from its tool tab
   assert.equal(peerRows(r).filter(row => row.destination.endsWith("loop_a.network.json")).length, 1);
 });
 
-test("registry maxDepth stops A's next hop before its artifact is fetched", async () => {
+test("registry maxDepth stops depth_2 in a chain of distinct networks before its artifact is fetched", async () => {
   const r = await probe("depth");
-  assert.deepEqual(r.peers.map(p => p.name), ["loop_a"]);
-  assert.ok(peerRows(r).every(row => !row.destination.endsWith("loop_b.network.json")));
-  stop(r, /already in this request's call chain/);
+  assert.deepEqual(r.peers.map(p => p.name), ["depth_1"]);
+  assert.ok(peerRows(r).every(row => !row.destination.endsWith("depth_2.network.json")));
+  stop(r, /Stopped: depth_2 was not contacted: composition depth limit \(2\) exceeded \(chain: foundation → depth_1\)\./);
+  assert.doesNotMatch(r.stops.join("\n"), /already visited|cycle/);
+});
+
+test("depth_1, depth_2 and depth_3 never repeat, so the depth limit is the only guard that can stop them", async () => {
+  const r = await probe("depth", { setupEngine: engine => { engine.registry.maxDepth = 5; } });
+  assert.deepEqual(r.peers.map(p => p.name), ["depth_1", "depth_2", "depth_3"]);
+  assert.deepEqual(r.stops, []);
 });
 
 test("the default registry rejects the sixth level and gives distinct cycle and depth codes", () => {
@@ -237,7 +244,7 @@ test("publisher-funded configuration selects the site endpoint without a key and
 
 test("the collection serves the same network files as the individual fixture manifests", async () => {
   const catalog = JSON.parse(await read("lab-peers/agent-manifest.json"));
-  assert.equal(catalog.networks.length, 9);
+  assert.equal(catalog.networks.length, 12);
   for (const entry of catalog.networks) {
     const folder = entry.hocon.split("/")[1];
     const fixture = JSON.parse(await read("lab-peers/" + folder + "/agent-manifest.json"));
@@ -247,6 +254,18 @@ test("the collection serves the same network files as the individual fixture man
   const fixture = catalog.lab_http_fixture;
   assert.equal([fixture.path, fixture.location, fixture.status].join(" "), (await read("lab-peers/_redirects")).trim());
 });
+
+// The text the visitor reads in Run evidence for each failure choice.
+const shown = {
+  broken: /failed validation.*missing tool 'missing_member'/,
+  cycle: /Stopped: loop_a is already in this request's call chain \(cycle loop_a → loop_b → loop_a\): already visited in this request\./,
+  depth: /Stopped: depth_2 was not contacted: composition depth limit \(2\) exceeded \(chain: foundation → depth_1\)\./,
+  "remote limit": /Skipped Key Thief: the per-query limit of 4 third-party calls was reached/,
+  "agent limit": /limit of 24 agent invocations/,
+  denied: /Policy: 127\.0\.0\.1:8082 is not in foundation's allowed_peers; refusing to contact it\./,
+  near_name: /No published network named 'near_name'/,
+  redirector: /fetch 302/,
+};
 
 test("all seven HTML buttons render runtime observations, including each failure choice", async () => {
   const { StubDocument } = await import("./stub_document.mjs");
@@ -286,6 +305,10 @@ test("all seven HTML buttons render runtime observations, including each failure
         const rendered = doc.getElementById("results").children.filter(c => c.tag === "h3");
         assert.equal(rendered.length, button.dataset.probe === "private" ? 2 : 1);
         for (const heading of rendered) assert.match(heading.textContent, / · (Observed$|Replayed 302 stopped)/);
+        if (button.dataset.probe === "stops") {
+          const evidence = doc.getElementById("results").children.filter(c => c.tag === "pre")[0].textContent;
+          assert.match(evidence, shown[selected], selected + ": " + evidence);
+        }
         assert.ok(ledger.children.length > 0);
         assert.equal(button.disabled, false);
       }

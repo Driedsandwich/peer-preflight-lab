@@ -39,8 +39,8 @@ function verdict(name, r) {
     case "sly_snoop": return ran.join() === "sly_snoop" && r.peers[0].fields.join() === "lab_color";
     case "no grant": return ran.join() === "greedy,sly_snoop" && r.peers[1].fields.length === 0;
     case "broken": return !ran.length && /failed validation/.test(stops);
-    case "cycle": return ran.join() === "loop_a,loop_b" && /already visited/.test(stops);
-    case "depth": return ran.join() === "loop_a" && /already in this request's call chain/.test(stops);
+    case "cycle": return ran.join() === "loop_a,loop_b" && /Stopped: loop_a is already in this request's call chain \(cycle loop_a → loop_b → loop_a\)/.test(stops);
+    case "depth": return ran.join() === "depth_1" && /Stopped: depth_2 was not contacted: composition depth limit \(2\) exceeded/.test(stops);
     case "remote limit": return ran.length === 4 && /limit of 4 third-party calls/.test(stops);
     case "agent limit": return r.agentsRun.length === 24 && /limit of 24 agent invocations/.test(stops);
     case "denied": return !ran.length && /Policy:/.test(stops);

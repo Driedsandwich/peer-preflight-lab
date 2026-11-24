@@ -1,0 +1,17 @@
+{
+  "protocol": "nsdeploy-link/v1",
+  "exports": [
+    {
+      "network": "depth_2",
+      "front_man": "depth_2",
+      "aliases": [
+        "depth_2"
+      ],
+      "url": "depth_2"
+    }
+  ],
+  "imports": [],
+  "link_updates": {
+    "mode": "browser-local"
+  }
+}

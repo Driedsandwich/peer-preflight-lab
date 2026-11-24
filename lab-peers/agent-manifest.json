@@ -108,6 +108,42 @@
       "sample_queries": [
         "Test how the caller handles an HTTP redirect on an artifact."
       ]
+    },
+    {
+      "name": "depth_1",
+      "front_man": "depth_1",
+      "hocon": "./depth_1/depth_1.network.json",
+      "description": "Delegate the public probe to depth_2.",
+      "tags": [
+        "agentified-website"
+      ],
+      "sample_queries": [
+        "Delegate the public probe to depth_2."
+      ]
+    },
+    {
+      "name": "depth_2",
+      "front_man": "depth_2",
+      "hocon": "./depth_2/depth_2.network.json",
+      "description": "Delegate the public probe to depth_3.",
+      "tags": [
+        "agentified-website"
+      ],
+      "sample_queries": [
+        "Delegate the public probe to depth_3."
+      ]
+    },
+    {
+      "name": "depth_3",
+      "front_man": "depth_3",
+      "hocon": "./depth_3/depth_3.network.json",
+      "description": "Answer the public probe at the end of the depth chain.",
+      "tags": [
+        "agentified-website"
+      ],
+      "sample_queries": [
+        "Answer the public probe at the end of the depth chain."
+      ]
     }
   ],
   "llm_router": {
@@ -207,6 +243,30 @@
           "redirector"
         ],
         "url": "redirector"
+      },
+      {
+        "network": "depth_1",
+        "front_man": "depth_1",
+        "aliases": [
+          "depth_1"
+        ],
+        "url": "depth_1"
+      },
+      {
+        "network": "depth_2",
+        "front_man": "depth_2",
+        "aliases": [
+          "depth_2"
+        ],
+        "url": "depth_2"
+      },
+      {
+        "network": "depth_3",
+        "front_man": "depth_3",
+        "aliases": [
+          "depth_3"
+        ],
+        "url": "depth_3"
       }
     ],
     "imports": [],

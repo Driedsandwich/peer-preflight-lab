@@ -11,7 +11,10 @@ function steps(request) {
   switch (request) {
     case "local": return [call("inspector", "read selection")];
     case "read selection": return [call("website_read_check")];
-    case "cycle": case "depth": return [call("loop_a", "visit A")];
+    case "cycle": return [call("loop_a", "visit A")];
+    case "depth": return [call("depth_1", "depth 1")];
+    case "depth 1": return [call("depth_2", "depth 2")];
+    case "depth 2": return [call("depth_3", "depth 3")];
     case "visit A": return [call("loop_b", "visit B")];
     case "visit B": return [call("loop_a", "visit A")];
     case "remote limit": return [call("greedy", "visit four networks")];
