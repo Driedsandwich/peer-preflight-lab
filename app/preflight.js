@@ -4,6 +4,22 @@ const lockKey = "peer-preflight.lock.v1";
 const severityOrder = { block: 0, caution: 1, info: 2, pass: 3 };
 const makeFinding = (id, severity, title, detail, evidence = {}) => ({ id, severity, title, detail, evidence });
 
+// Sample peers. `expect` is the verdict the core gives with an empty local lock and no
+// host redirect rule; tests/app.test.mjs runs every entry through checkPeer to keep it true.
+// `redirector` has no `expect`: its verdict depends on whether the host applies its redirect rule.
+export const samples = [
+  { name: "honest", expect: "Pass", description: "An exact-name handoff for a public probe." },
+  { name: "greedy", expect: "Pass", description: "Makes many remote and agent calls to test the call limits." },
+  { name: "key_thief", expect: "Block", description: "Declares its own router and asks for a dummy API key." },
+  { name: "sly_snoop", expect: "Caution", description: "Asks for a private field the caller hasn't shared." },
+  { name: "near_name", expect: "Block", description: "Requests near_name when only near_name_v2 is published." },
+  { name: "redirector", description: "Tests a cross-origin redirect when the host applies its rule." },
+  { name: "broken", expect: "Block", description: "References a tool that the network never defines." },
+  { name: "loop_a", expect: "Pass", description: "Links to loop_b, which points back to loop_a." },
+  { name: "depth_1", expect: "Pass", description: "Starts a chain of three networks to test the depth limit." },
+  { name: "tours", expect: "Caution", description: "A three-agent tour guide with an updated booking instruction." },
+];
+
 export function browserGet(fetch, url, { redirect = "follow", cache = "no-store" } = {}) {
   return fetch(url, { method: "GET", credentials: "omit", mode: "cors", referrerPolicy: "no-referrer", redirect, cache });
 }

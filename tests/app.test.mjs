@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { callerBase, callerOrigin, peerOrigin } from "../lab-caller/origins.js";
 import { readLock } from "../core/src/preflight-core.mjs";
-import { actionControls, checkPeer, clearLock, exportLock, saveDecision, seedDemo } from "../app/preflight.js";
+import { actionControls, checkPeer, clearLock, exportLock, samples, saveDecision, seedDemo } from "../app/preflight.js";
 
 const read = (path) => readFile(new URL("../" + path, import.meta.url), "utf8");
 const catalog = JSON.parse(await read("lab-peers/agent-manifest.json"));
@@ -78,6 +78,19 @@ for (const [name, expectedVerdict] of Object.entries(expected)) {
     if (name === "key_thief") assert.equal(result.findings[0].id, "instruction-takeover");
   });
 }
+
+test("every sample's Expect label is the verdict the core gives, and the label is left off when the host decides", async () => {
+  assert.deepEqual(samples.map(({ name }) => name), Object.keys(expected));
+  for (const { name, description, expect } of samples) {
+    assert.doesNotMatch(description, /\blab\b/i, name);
+    const { result } = await fixtures().run(urlFor(name));
+    if (name === "redirector") {
+      assert.equal(expect, undefined);
+    } else {
+      assert.equal(expect, result.verdict, name);
+    }
+  }
+});
 
 test("the redirect rule records the final origin and rejects the non-network response", async () => {
   const { run } = fixtures({ redirect: true });

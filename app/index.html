@@ -28,7 +28,8 @@
     <p id="check-status" class="notice" role="status"></p>
 
     <section id="samples" class="panel samples" aria-label="Sample peers">
-      <p class="start"><strong>Start here:</strong> pick a sample peer below, or paste a peer network URL, then press Check.</p>
+      <p class="start"><strong>Start here:</strong> press a sample peer below to check it, or paste a peer network URL and press Check.</p>
+      <p class="start-note">After a check: Pass lets you pin this exact version. Caution and Block ask you to read the reasons first. Pin and Block stay in this browser.</p>
       <ul id="sample-list" class="sample-list"></ul>
       <div class="demo">
         <button id="try-demo" type="button">Try the update demo</button>
@@ -70,7 +71,7 @@
 
     <div id="decision-actions" class="decision-actions" hidden></div>
     <div class="lock-tools">
-      <span class="lock-label">Local peer lock</span>
+      <span class="lock-label">Saved in this browser:</span>
       <button id="export-lock" class="text-button" type="button">Export peers.lock.json</button>
       <button id="clear-lock" class="text-button" type="button">Clear lock</button>
       <p id="lock-status" class="notice" role="status"></p>
@@ -97,7 +98,7 @@
       </div>
     </section>
 
-    <details class="panel glossary">
+    <details class="panel glossary" open>
       <summary>Words used here</summary>
       <ul id="glossary-legend" class="legend" aria-label="Verdict meanings"></ul>
       <dl>

@@ -1,24 +1,19 @@
 import { peerOrigin } from "../lab-caller/origins.js";
-import { actionControls, browserGet, checkPeer, clearLock, exportLock, saveDecision, seedDemo } from "./preflight.js";
+import { actionControls, browserGet, checkPeer, clearLock, exportLock, saveDecision, samples, seedDemo } from "./preflight.js";
 
-const samples = [
-  ["honest", "An exact-name handoff for a public probe."],
-  ["greedy", "Exercises the lab's limits on remote and agent calls."],
-  ["key_thief", "Declares its own router and asks for a dummy API key."],
-  ["sly_snoop", "Asks for a private field the caller hasn't shared."],
-  ["near_name", "Requests near_name when only near_name_v2 is published."],
-  ["redirector", "Tests a cross-origin redirect when the host applies its rule."],
-  ["broken", "References a tool that the network never defines."],
-  ["loop_a", "Links to loop_b, which points back to loop_a."],
-  ["depth_1", "Starts a three-network chain for the lab's depth limit."],
-  ["tours", "A three-agent tour guide with an updated booking instruction."],
-];
 
 const legend = [
   ["Pass", "nothing found that should stop you"],
   ["Caution", "read the reasons before you use it"],
   ["Block", "do not let it run"],
 ];
+const actionNotes = {
+  pin: "Keep this exact version. The next check compares against it.",
+  "pin-anyway": "Keep this version despite the reasons. Kept in this browser only.",
+  review: "Show the evidence behind each reason.",
+  block: "Remember not to run this peer. Kept in this browser only.",
+};
+const severityLabels = { block: "Block", caution: "Caution", info: "Info" };
 const evidenceLabels = {
   agent: "Agent", line: "Line", rules: "Matched rules", fields: "Fields",
   callerOrigin: "Caller origin", declaredOrigins: "Declared router origins",
@@ -54,6 +49,14 @@ function shape(verdict) {
   return icon;
 }
 
+function severityMark(severity) {
+  const mark = element("span", "reason-mark " + severity);
+  const icon = severity === "info" ? element("span", "info-mark", "i") : shape(severity);
+  icon.setAttribute("aria-hidden", "true");
+  mark.append(icon, element("span", "reason-weight", severityLabels[severity]));
+  return mark;
+}
+
 function notice(id, text = "", kind = "") {
   const node = byId(id);
   node.textContent = text;
@@ -71,21 +74,24 @@ function renderLegend(list) {
   }
 }
 
-for (const [name, description] of samples) {
+for (const { name, description, expect } of samples) {
   const item = element("li");
   const button = element("button", "sample-button");
+  const text = element("div", "sample-text");
   const explanation = element("span", "sample-description", description);
   explanation.id = "sample-" + name;
+  text.append(explanation);
   button.type = "button";
   button.textContent = name;
   button.setAttribute("aria-describedby", explanation.id);
-  button.addEventListener("click", () => {
-    input.value = sampleUrl(name);
-    input.removeAttribute("aria-invalid");
-    notice("check-status");
-    checkButton.focus();
-  });
-  item.append(button, explanation);
+  if (expect) {
+    const badge = element("span", "expect", "Expect: " + expect);
+    badge.id = "sample-" + name + "-expect";
+    text.append(badge);
+    button.setAttribute("aria-describedby", explanation.id + " " + badge.id);
+  }
+  button.addEventListener("click", () => runCheck(sampleUrl(name)));
+  item.append(button, text);
   byId("sample-list").append(item);
 }
 renderLegend(byId("result-legend"));
@@ -109,11 +115,13 @@ function renderReasons(findings) {
     const row = element("li");
     const details = element("details", "finding");
     const summary = element("summary");
-    summary.append(element("span", "reason-title", titleOf(finding)));
+    const body = element("span", "reason-body");
+    body.append(element("span", "reason-title", titleOf(finding)));
     if (finding.severity === "info") {
       const description = finding.id === "peer-router" ? "The caller's router takes precedence." : finding.detail;
-      summary.append(element("span", "reason-info", "Info · " + description));
+      body.append(element("span", "reason-info", description));
     }
+    summary.append(severityMark(finding.severity), body);
     const evidence = element("div", "evidence");
     evidence.append(element("p", "", finding.detail));
     const entries = Object.entries(finding.evidence);
@@ -161,26 +169,33 @@ function renderChanges({ changes, fingerprint }, demo) {
   }
 
   const { before, after } = changes.fingerprint;
-  for (const [hash, label] of [[before, "Pinned fingerprint"], [after, "Current fingerprint"]]) {
-    if (hashes.childNodes.length) hashes.append(element("span", "", "→"));
+  for (const [hash, word, label] of [[before, "Pinned", "Pinned fingerprint"], [after, "Now", "Current fingerprint"]]) {
+    if (hashes.childNodes.length) {
+      const arrow = element("span", "hash-arrow", "→");
+      arrow.setAttribute("aria-hidden", "true");
+      hashes.append(arrow);
+    }
+    const group = element("span", "hash");
     const code = element("code", "", shortHash(hash));
     code.title = label + ": " + hash;
-    code.setAttribute("aria-label", label + " " + shortHash(hash));
-    hashes.append(code);
+    group.append(element("span", "hash-word", word), code);
+    hashes.append(group);
   }
 
-  function changeRow(sign, text, location) {
+  function changeRow(sign, kind, text, location) {
     const row = element("li");
-    row.append(element("span", "change-sign", sign), element("span", "change-text", text));
+    const sentence = element("span", "change-text");
+    sentence.append(element("strong", "change-kind", kind + ": "), text);
+    row.append(element("span", "change-sign", sign), sentence);
     if (location) row.title = location;
     list.append(row);
   }
   for (const { agent, added, removed } of changes.instructions) {
-    for (const { line, text } of added) changeRow("+", text, agent + ", line " + line);
-    for (const { line, text } of removed) changeRow("−", text, agent + ", line " + line);
+    for (const { line, text } of added) changeRow("+", "Added instruction", text, agent + ", line " + line);
+    for (const { line, text } of removed) changeRow("−", "Removed instruction", text, agent + ", line " + line);
   }
-  for (const url of changes.destinations.added) changeRow("+", "Added destination: " + url);
-  for (const url of changes.destinations.removed) changeRow("−", "Removed destination: " + url);
+  for (const url of changes.destinations.added) changeRow("+", "Added destination", url);
+  for (const url of changes.destinations.removed) changeRow("−", "Removed destination", url);
   list.hidden = list.childElementCount === 0;
   if (list.hidden) {
     note.textContent = !changes.hasSnapshots ? "Only a fingerprint is available for the pinned version."
@@ -193,9 +208,13 @@ function renderChanges({ changes, fingerprint }, demo) {
 function renderActions(check) {
   actionArea.replaceChildren();
   for (const { id, label, style, disabled } of actionControls(check.result)) {
+    const wrapper = element("div", "action" + (style === "text-button" ? " action-text" : ""));
     const button = element("button", style, label);
+    const note = element("p", "action-note", actionNotes[id === "pin" && style === "text-button" ? "pin-anyway" : id]);
+    note.id = "action-note-" + id;
     button.type = "button";
     button.dataset.action = id;
+    button.setAttribute("aria-describedby", note.id);
     button.disabled = !!disabled;
     if (id === "review") {
       const details = [...reasons.querySelectorAll("details")];
@@ -229,7 +248,8 @@ function renderActions(check) {
         }
       });
     }
-    actionArea.append(button);
+    wrapper.append(button, note);
+    actionArea.append(wrapper);
   }
 }
 

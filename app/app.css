@@ -172,6 +172,7 @@ button.primary:hover:not(:disabled) {
 
 .samples { padding-top: 13px; }
 .start { font-size: 1.0625rem; }
+.start-note { margin-top: 4px; color: var(--text-muted); font-size: .875rem; }
 
 .sample-list {
   display: grid;
@@ -198,7 +199,20 @@ button.primary:hover:not(:disabled) {
   text-align: left;
 }
 
+.sample-text { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; min-width: 0; }
 .sample-description { color: var(--text-muted); font-size: .875rem; }
+.expect {
+  flex: none;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--background);
+  color: var(--text-muted);
+  font-size: .75rem;
+  font-weight: 650;
+  line-height: 1.5;
+  white-space: nowrap;
+}
 
 .demo {
   display: flex;
@@ -321,7 +335,14 @@ button.primary:hover:not(:disabled) {
   font-variant-numeric: tabular-nums;
 }
 
-.finding summary { cursor: pointer; list-style: none; }
+.finding summary {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0 10px;
+  cursor: pointer;
+  list-style: none;
+}
 .finding summary::-webkit-details-marker { display: none; }
 .finding summary:hover .reason-title { text-decoration: underline; text-underline-offset: .16em; }
 
@@ -333,7 +354,20 @@ button.primary:hover:not(:disabled) {
   overflow-wrap: anywhere;
 }
 
+.reason-body { min-width: 0; }
+.reason-title { display: block; }
 .reason-info { display: block; color: var(--text-muted); line-height: 1.3; }
+.reason-mark { display: flex; align-items: center; gap: 6px; }
+.reason-mark .shape { --shape-size: 15px; --shape-stroke: 2px; }
+.reason-weight { color: var(--text-muted); font-size: .75rem; font-weight: 700; }
+.info-mark {
+  display: inline-block;
+  flex: none;
+  width: 15px;
+  color: var(--text-muted);
+  font: italic 700 1rem/1 Georgia, serif;
+  text-align: center;
+}
 .passed-checks { display: flex; align-items: baseline; gap: 10px; }
 .passed-checks .shape { align-self: center; }
 
@@ -367,8 +401,9 @@ button.primary:hover:not(:disabled) {
 
 .hashes {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 6px 10px;
   padding-left: 12px;
   border-left: 1px solid var(--border);
 }
@@ -381,6 +416,9 @@ button.primary:hover:not(:disabled) {
   font-size: .98rem;
 }
 
+.hash { display: inline-flex; align-items: center; gap: 6px; }
+.hash-word { color: var(--text-muted); font-size: .875rem; font-weight: 650; }
+.change-kind { color: var(--text-muted); font-weight: 650; }
 .change-list { padding: 0; list-style: none; }
 .change-list li {
   display: grid;
@@ -401,7 +439,9 @@ button.primary:hover:not(:disabled) {
   gap: 5px 16px;
 }
 .decision-actions button:not(.text-button) { font-size: 1.15rem; }
-.decision-actions .text-button { grid-column: 1 / -1; justify-self: center; }
+.action { display: grid; align-content: start; gap: 4px; }
+.action-text { grid-column: 1 / -1; justify-items: center; text-align: center; }
+.action-note { color: var(--text-muted); font-size: .8125rem; line-height: 1.3; }
 
 .lock-tools {
   display: flex;
@@ -497,6 +537,7 @@ button.primary:hover:not(:disabled) {
   .legend { gap: 7px; }
   .legend-label { --shape-size: 16px; font-size: 1rem; }
   .reasons > li { padding-left: 26px; }
+  .finding summary { grid-template-columns: minmax(0, 1fr); gap: 2px; }
   .reasons > li::before { left: 2px; }
   .reason-title, .passed-checks { font-size: 1rem; }
   .reason-info { font-size: .875rem; }
