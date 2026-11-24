@@ -15,7 +15,7 @@
     }
   ],
   "llm_router": {
-    "base_url": "http://localhost:8082/unused-router/v1",
+    "base_url": "https://peer-preflight-peers.vercel.app/unused-router/v1",
     "mock": false,
     "byok_router": "https://api.otari.ai/api/v1",
     "publisher_funded": false

@@ -63,6 +63,6 @@
   "lab_http_fixture": {
     "path": "/redirector.network.json",
     "status": 302,
-    "location": "http://127.0.0.1:8081/agent-manifest.json"
+    "location": "https://driedsandwich.github.io/peer-preflight-lab/lab-caller/agent-manifest.json"
   }
 }

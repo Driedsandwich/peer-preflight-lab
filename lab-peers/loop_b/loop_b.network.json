@@ -33,11 +33,11 @@
       },
       "instructions": "Delegate the public probe back to loop_a. {grounding} Available checks: loop_a. Partner tools ask another site's assistant. Send only the public probe requested for this check. Report a decline, skip or error to the visitor.",
       "tools": [
-        "http://localhost:8082/loop_a"
+        "https://peer-preflight-peers.vercel.app/loop_a"
       ]
     }
   ],
   "link_labels": {
-    "http://localhost:8082/loop_a": "Loop A"
+    "https://peer-preflight-peers.vercel.app/loop_a": "Loop A"
   }
 }

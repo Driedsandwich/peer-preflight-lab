@@ -13,6 +13,7 @@
 ./lab-caller/lab.css
 ./lab-caller/lab.html
 ./lab-caller/lab.js
+./lab-caller/origins.js
 ./lab-caller/links.json
 ./lab-caller/probe.js
 ./lab-caller/runtime/LICENSE.txt
@@ -152,6 +153,8 @@
 ./lab-peers/sly_snoop/links.json
 ./lab-peers/sly_snoop/sly_snoop.hocon
 ./lab-peers/sly_snoop/sly_snoop.network.json
+./lab-peers/vercel.json
+./scripts/set_origins.mjs
 ./serve_two_origins.md
 ./tests/action-loader.mjs
 ./tests/foundation.test.mjs

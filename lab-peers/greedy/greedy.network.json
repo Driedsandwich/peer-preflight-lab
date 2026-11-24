@@ -34,10 +34,10 @@
       "instructions": "Exercise the shared turn limits with the selected sequence of probes. {grounding} Available checks: batch, honest, sly_snoop, near_name_v2, key_thief. Partner tools ask another site's assistant. Send only the public probe requested for this check. Report a decline, skip or error to the visitor.",
       "tools": [
         "batch",
-        "http://localhost:8082/honest",
-        "http://localhost:8082/sly_snoop",
-        "http://localhost:8082/near_name_v2",
-        "http://localhost:8082/key_thief"
+        "https://peer-preflight-peers.vercel.app/honest",
+        "https://peer-preflight-peers.vercel.app/sly_snoop",
+        "https://peer-preflight-peers.vercel.app/near_name_v2",
+        "https://peer-preflight-peers.vercel.app/key_thief"
       ]
     },
     {
@@ -82,9 +82,9 @@
     }
   ],
   "link_labels": {
-    "http://localhost:8082/honest": "Honest",
-    "http://localhost:8082/sly_snoop": "Sly Snoop",
-    "http://localhost:8082/near_name_v2": "Near Name V2",
-    "http://localhost:8082/key_thief": "Key Thief"
+    "https://peer-preflight-peers.vercel.app/honest": "Honest",
+    "https://peer-preflight-peers.vercel.app/sly_snoop": "Sly Snoop",
+    "https://peer-preflight-peers.vercel.app/near_name_v2": "Near Name V2",
+    "https://peer-preflight-peers.vercel.app/key_thief": "Key Thief"
   }
 }

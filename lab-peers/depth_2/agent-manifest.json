@@ -21,7 +21,7 @@
     "publisher_funded": false
   },
   "allowed_peers": [
-    "http://localhost:8082"
+    "https://peer-preflight-peers.vercel.app"
   ],
   "peer_policy": {
     "mode": "closed",

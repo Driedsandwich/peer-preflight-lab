@@ -2,26 +2,47 @@
 
 A static, two-origin test bench for participants building their first agentic website. Use the same caller, peer fixtures and observations across different entries. The inspector reads real page state. The inference used for repeatable checks is local and deterministic.
 
-**Start with the seven buttons at `/lab.html`.** The [two-origin guide](serve_two_origins.md) gives the two server commands, the consent sequence and the expected ledger. The ordinary assistant and BYOK settings are at `/index.html`. [File inventory](FILELIST.txt)
+**Start with the seven buttons at `lab.html`.** The [two-origin guide](serve_two_origins.md) gives the public addresses, the local server commands, the consent sequence and the expected ledger. The ordinary assistant and BYOK settings are at `index.html`. [File inventory](FILELIST.txt)
+
+## Where the lab runs
+
+The two sites are static and sit on two different origins. The files in this repository carry the public addresses.
+
+| Role | Folder | Public address (host) |
+| --- | --- | --- |
+| Caller | `lab-caller/` | `https://driedsandwich.github.io/peer-preflight-lab/lab-caller/` (GitHub Pages, under a path prefix) |
+| Peer fixtures | `lab-peers/` | `https://peer-preflight-peers.vercel.app` (Vercel, folder `lab-peers/` is the site root) |
+
+The peer root needs `Access-Control-Allow-Origin: *` on every path, because the caller's browser fetches the peer files. `lab-peers/vercel.json` sets that header. The caller's own files are read by the caller's page on its own origin, so they need none. Whether the two hosts are live and serve these files as intended is **未確認**: this repository was changed and tested without network access. Statements below about how GitHub Pages and Vercel behave are general knowledge and were not checked against those hosts.
+
+Every address is written once, in [`lab-caller/origins.js`](lab-caller/origins.js), which holds a `public` set and a `local` set. `node scripts/set_origins.mjs --public` or `--local` copies the chosen set into the HOCON sources, manifests and the redirect rule, then rebuilds the generated files (`*.network.json`, `agent-mcp.json`, `.well-known/`, `bridge/`) with the vendored `build_network.mjs` and checks all 13 sources. `broken` must fail its build, and the script exits 1 on any other result. Commit with the `--public` set.
+
+The `denied` check needs an origin that is on `peer_policy.deny_origins` and is never contacted. Locally it is the peer server's other loopback name, `http://127.0.0.1:8082`. Publicly it is `https://denied-peer.invalid`. `.invalid` is a name the standards reserve so that it should never resolve (general knowledge, not tested here), so a refusal that failed would still be unlikely to reach a real site. This value is this lab's own choice. Nothing in the task named a public denied origin.
 
 ## Reproduce the offline checks
 
-From the directory containing `files/`, with Node 22 on PATH, run
+From the repository root, with Node 22 on PATH, run
 
 ```sh
-node --test "files/tests/*.test.mjs"
+node --test "tests/*.test.mjs"
+node --test "core/tests/*.test.mjs"
 ```
 
-**Node v22.22.3 — 23 cases passed, 0 failed, 0 skipped (re-run 2026-11-24 after the fixes below).** The quoted command exited 0. In the supplied environment its isolated reporter listed one passing test file. Running the same suite with `node --experimental-test-isolation=none --test "files/tests/*.test.mjs"` exposed the individual case results. Tests use disk-backed artifact responses, the runtime’s engine and manual agent loop, the actual action module, the skill’s scripted model, and a DOM stand-in for the button handlers. No package installation is needed.
+**Node v22.22.3, 2026-11-24 — `tests/*.test.mjs`: 23 cases passed, 0 failed, 0 skipped. `core/tests/*.test.mjs`: 29 cases passed, 0 failed, 0 skipped.** Both ran with the `public` set and again with the `local` set; the counts were the same. The tests read every address from `lab-caller/origins.js`, so they pass for whichever set was last written by `set_origins.mjs`. The earlier README noted that the isolated reporter could list a test file as one result and that `--experimental-test-isolation=none` shows each case. This run listed the 23 cases individually without that flag. Tests use disk-backed artifact responses (a request outside the caller's path prefix gets a 404, as on a real host), the runtime’s engine and manual agent loop, the actual action module, the skill’s scripted model, and a DOM stand-in for the button handlers. No package installation is needed.
 
-To check the publications against the imported skill, set `SKILL_DIR` to its path and run
+To check the publications against the vendored build script, run
 
 ```sh
-SKILL_DIR="${SKILL_DIR:-$PWD/skills/agentify-website}"
-for src in files/lab-caller/*.hocon files/lab-peers/*/*.hocon; do
-  node "$SKILL_DIR/scripts/build_network.mjs" "$src" \
+node scripts/set_origins.mjs --check
+```
+
+which is the same as running this for each source:
+
+```sh
+for src in lab-caller/*.hocon lab-peers/*/*.hocon; do
+  node vendor/agentify-website/scripts/build_network.mjs "$src" \
     --manifest "${src%/*}/agent-manifest.json" \
-    --runtime files/lab-caller/runtime --check
+    --runtime lab-caller/runtime --check
   echo "$src exit $?"
 done
 ```
@@ -53,7 +74,7 @@ The builder accepted twelve of thirteen inputs. For `broken`, the manifest delib
 
 ## Reuse and evidence
 
-`lab-caller/` contains the two-agent source, discovery files, read-only action, organizer runtime, assistant and diagnostic page. `lab-peers/` has one collection manifest for simultaneous loopback service and a standalone manifest in each fixture directory. The collection adopts the alternate router declaration from `key_thief` so that fixture also works on a single peer port. For another participant’s first check, serve their own caller with the honest peer’s exact URL in its tools, label and peer policy. Use the decline/approve pair and inspect the peer log. When adapting the lab itself, change HOCON and manifest inputs, rebuild, and update the tests that assert your graph’s names, action receipt and permission fields.
+`lab-caller/` contains the two-agent source, discovery files, read-only action, organizer runtime, assistant and diagnostic page. `lab-peers/` has one collection manifest, so one host can serve every fixture at its root, and a standalone manifest in each fixture directory. The collection adopts the alternate router declaration from `key_thief` so that fixture also works on a single peer port. For another participant’s first check, serve their own caller with the honest peer’s exact URL in its tools, label and peer policy. Use the decline/approve pair and inspect the peer log. When adapting the lab itself, change HOCON and manifest inputs, rebuild, and update the tests that assert your graph’s names, action receipt and permission fields.
 
 All source references below are paths in the imported checkout, commit `f3fab94`. The checked-in specification is Profile 0.3. Its seven §6 checks match the local Profile 0.2 revision `fd872b9` verbatim.
 
@@ -75,7 +96,8 @@ Short paths beginning with `runtime/` and `templates/` in this table are relativ
 ## Unverified (未確認)
 
 - **Cycle line missing in a real Chrome tab.** A real-Chrome check on 2026-11-24 reported that the cycle Case showed no stop sentence. The Node runs and the DOM stand-in always had the runtime's `already visited` reason in the stops, so the cause of the missing line in that tab was not reproduced here and is 未確認. The page now builds a full `Stopped:` sentence and the tests assert the rendered Run evidence text for all eight Cases. Re-check in a real browser.
-- **Live browser and hosting.** This environment refused both loopback listeners with `listen EPERM`. Browser rendering, keyboard and consent interaction in a real tab, actual HTTP/TLS delivery, browser CORS enforcement, browser-generated cookies and wire-level traffic remain 未確認. The DOM stand-in exercised all seven HTML handlers and every failure selector. No screenshots were taken.
+- **Public hosting.** Whether `https://driedsandwich.github.io/peer-preflight-lab/lab-caller/` and `https://peer-preflight-peers.vercel.app` are live and serve these files, the CORS header from `lab-peers/vercel.json`, and a run of the seven buttons against the two public origins are 未確認. Three points to look at on first deployment, none of them checked here. GitHub Pages is expected to skip folders that start with a dot unless the repository root has a `.nojekyll` file, so `lab-caller/.well-known/` may not be published. The runtime asks for the manifest at the root of the caller's host (`https://driedsandwich.github.io/agent-manifest.json`) once per scripted check, to decide whether a saved router is another site's mock, and that request is not under the lab's folder. The runtime's coded-tool sandbox expects a Content-Security-Policy header on its worker (its own comment says so), and GitHub Pages is expected not to let a site set response headers. The fixtures use no coded tools, so it is not exercised.
+- **Live browser and hosting.** The earlier environment refused both loopback listeners with `listen EPERM`. A loopback listener on port 8082 did start in a later run (`curl` returned 200 and `Access-Control-Allow-Origin: *` for the peer manifest), but no browser was used. Browser rendering, keyboard and consent interaction in a real tab, actual HTTP/TLS delivery, browser CORS enforcement, browser-generated cookies and wire-level traffic remain 未確認. The DOM stand-in exercised all seven HTML handlers and every failure selector. No screenshots were taken.
 - **Inference services.** Live BYOK, provider acceptance of a model, settings/profile persistence in a real browser, publisher-funded billing and live provider behavior under peer instructions remain 未確認. A scripted peer exercises routing and data access deterministically.
-- **Redirects.** The organizer’s loader uses plain `fetch` for public files. The diagnostic adapter requests rejection of redirects. The 302 replay and the fixture’s hosting rule capture the intended stop. Automatic re-consent at a new origin by the unmodified runtime and a real host’s redirect behavior remain 未確認. The specification discusses normal redirects at lines 248–251 and destination consent at lines 394–397.
+- **Redirects.** The organizer’s loader uses plain `fetch` for public files. The diagnostic adapter requests rejection of redirects. The 302 replay and the fixture’s hosting rule capture the intended stop. `_redirects` is the Netlify and Cloudflare Pages format. Vercel is expected not to read it (not checked), and `lab-peers/vercel.json` adds no redirect, so on the Vercel host the redirector fixture is expected to be only the in-memory replay. Automatic re-consent at a new origin by the unmodified runtime and a real host’s redirect behavior remain 未確認. The specification discusses normal redirects at lines 248–251 and destination consent at lines 394–397.
 - **Upstream transport and destination-specific grants.** The normal peer reply path returned no private envelope in this suite. Applying `allow.to_upstream` to a peer’s private return payload, and enforcing independent per-destination grants from one front agent, remain 未確認.

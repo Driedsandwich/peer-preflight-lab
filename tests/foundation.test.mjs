@@ -3,23 +3,36 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { register } from "node:module";
 import { runProbe, peerOrigin } from "../lab-caller/probe.js";
+import { callerBase, callerOrigin, deniedOrigin } from "../lab-caller/origins.js";
 import { canary, modelRoute } from "../lab-caller/scripted-router.js";
 import { allowedUpstreamSly, filterSlyData } from "../lab-caller/runtime/kernel.js";
 import { RemoteRegistry } from "../lab-caller/runtime/remote.js";
 import { selectTopRouter } from "../lab-caller/runtime/engine.js";
 
 register("./action-loader.mjs", import.meta.url);
-const caller = "http://127.0.0.1:8081";
+// Every address comes from lab-caller/origins.js, so these tests pass for either set
+// of addresses that scripts/set_origins.mjs has written into the fixtures.
+const caller = callerBase;
+const host = origin => new URL(origin).host;
+const escaped = text => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 globalThis.location = new URL(caller + "/lab.html");
 const assets = new URL("../", import.meta.url);
 const read = path => readFile(new URL(path, assets), "utf8");
 
 async function fromDisk(input, options, peerFolder = "") {
   const url = new URL(input);
-  assert.ok([caller, peerOrigin].includes(url.origin));
-  const root = url.origin === caller ? "lab-caller" : "lab-peers" + peerFolder;
+  assert.ok([callerOrigin, peerOrigin].includes(url.origin));
+  let file;
+  if (url.origin === callerOrigin) {
+    // The caller may sit under a path prefix. Anything outside it is a 404, as on a real host.
+    const prefix = new URL(caller).pathname.replace(/\/$/, "");
+    if (!url.pathname.startsWith(prefix + "/")) return new Response("Missing lab fixture", { status: 404 });
+    file = "lab-caller" + url.pathname.slice(prefix.length);
+  } else {
+    file = "lab-peers" + peerFolder + url.pathname;
+  }
   try {
-    return new Response(await read(root + url.pathname));
+    return new Response(await read(file));
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
     return new Response("Missing lab fixture", { status: 404 });
@@ -101,7 +114,7 @@ test("honest waits for consent before any peer GET, then executes in the caller"
   });
   const info = await card;
   try {
-    assert.equal(info.peerOrigin, "localhost:8082");
+    assert.equal(info.peerOrigin, host(peerOrigin));
     assert.equal(info.requestText, "public sample");
     assert.ok(contacts.every(url => !url.startsWith(peerOrigin)));
   } finally { allow("allow"); }
@@ -212,7 +225,7 @@ test("deny_origins refuses the request even when the user allows the card", asyn
   const r = await probe("denied");
   assert.equal(r.decisions[0].decision, "allow");
   stop(r, /Policy:.*refusing to contact/);
-  assert.ok(r.ledger.every(row => !row.destination.startsWith("http://127.0.0.1:8082")));
+  assert.ok(r.ledger.every(row => !row.destination.startsWith(deniedOrigin)));
   assert.deepEqual(r.peers, []);
 });
 
@@ -262,7 +275,7 @@ const shown = {
   depth: /Stopped: depth_2 was not contacted: composition depth limit \(2\) exceeded \(chain: foundation → depth_1\)\./,
   "remote limit": /Skipped Key Thief: the per-query limit of 4 third-party calls was reached/,
   "agent limit": /limit of 24 agent invocations/,
-  denied: /Policy: 127\.0\.0\.1:8082 is not in foundation's allowed_peers; refusing to contact it\./,
+  denied: new RegExp("Policy: " + escaped(host(deniedOrigin)) + " is not in foundation's allowed_peers; refusing to contact it\\."),
   near_name: /No published network named 'near_name'/,
   redirector: /fetch 302/,
 };

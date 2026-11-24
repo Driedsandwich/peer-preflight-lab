@@ -33,11 +33,11 @@
       },
       "instructions": "Delegate the public probe to depth_3. {grounding} Available checks: depth_3. Partner tools ask another site's assistant. Send only the public probe requested for this check. Report a decline, skip or error to the visitor.",
       "tools": [
-        "http://localhost:8082/depth_3"
+        "https://peer-preflight-peers.vercel.app/depth_3"
       ]
     }
   ],
   "link_labels": {
-    "http://localhost:8082/depth_3": "Depth 3"
+    "https://peer-preflight-peers.vercel.app/depth_3": "Depth 3"
   }
 }

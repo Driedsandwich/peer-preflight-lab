@@ -22,12 +22,12 @@
     "publisher_funded": false
   },
   "allowed_peers": [
-    "http://localhost:8082"
+    "https://peer-preflight-peers.vercel.app"
   ],
   "peer_policy": {
     "mode": "open",
     "deny_origins": [
-      "http://127.0.0.1:8082"
+      "https://denied-peer.invalid"
     ]
   },
   "agent_mcp": {

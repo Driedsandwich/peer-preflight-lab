@@ -3,8 +3,9 @@ import { Engine } from "./runtime/engine.js";
 import { filterSlyData, allowedUpstreamSly } from "./runtime/kernel.js";
 import { page } from "./site-actions.js";
 import { canary, modelRoute, scriptedCompletion } from "./scripted-router.js";
+import { peerOrigin } from "./origins.js";
 
-export const peerOrigin = "http://localhost:8082";
+export { peerOrigin };
 // Observe complete action receipts before the trace truncates their previews.
 class ReceiptRegistry extends ActionRegistry {
   receipts = [];
@@ -54,7 +55,7 @@ export function observedFetch({ caller, fetchAsset, ledger, onRequest, replayRed
       return scriptedCompletion(init.body);
     }
     if (hasCanary || keyed || row.cookieHeader || row.method !== "GET" || url.username || url.password || url.search ||
-        ![caller, peerOrigin].includes(url.origin)) {
+        ![new URL(caller).origin, peerOrigin].includes(url.origin)) {
       throw new Error("Lab transport blocked an unexpected artifact request.");
     }
     // Native fetch rejects redirects before it follows them. Synthetic transport

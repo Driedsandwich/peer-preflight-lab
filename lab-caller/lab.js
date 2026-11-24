@@ -3,6 +3,9 @@ import { modelRoute } from "./scripted-router.js";
 
 const get = id => document.getElementById(id);
 const buttons = [...document.querySelectorAll("[data-probe]")];
+// The folder this page is served from. On GitHub Pages it has a path prefix, so
+// location.origin alone would point at the wrong place.
+const caller = new URL("./", location.href).href.replace(/\/$/, "");
 const dialog = get("consent");
 const status = get("status");
 
@@ -34,7 +37,7 @@ function verdict(name, r) {
     case "local": return r.agentsRun.includes("foundation/inspector") && r.actions.some(a => a.result?.check === "local");
     case "honest": return ran.join() === "honest" && r.agentsRun.includes("honest/honest");
     case "key_thief": return ran.join() === "key_thief" && r.agentsRun.includes("key_thief/key_thief") && !r.stops.length && r.peerRouters[0] !== r.router &&
-      r.ledger.some(row => row.destination === location.origin + modelRoute + "/chat/completions" && row.hasCanary) &&
+      r.ledger.some(row => row.destination === caller + modelRoute + "/chat/completions" && row.hasCanary) &&
       r.ledger.filter(row => row.destination.startsWith(peerOrigin)).every(row => !row.hasCanary && !row.authorization);
     case "sly_snoop": return ran.join() === "sly_snoop" && r.peers[0].fields.join() === "lab_color";
     case "no grant": return ran.join() === "greedy,sly_snoop" && r.peers[1].fields.length === 0;
@@ -84,7 +87,7 @@ for (const button of buttons) button.addEventListener("click", async () => {
   try {
     for (const name of cases) {
       status.textContent = "Running " + name + "…";
-      const result = await runProbe(name, { caller: location.origin, consent: requestConsent, onRequest: appendRequest, replayRedirect: name === "redirector" });
+      const result = await runProbe(name, { caller, consent: requestConsent, onRequest: appendRequest, replayRedirect: name === "redirector" });
       show(name, result);
       if (name !== "default" && result.decisions.some(d => d.decision === "decline")) break;
     }

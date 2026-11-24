@@ -147,13 +147,13 @@
     }
   ],
   "llm_router": {
-    "base_url": "http://localhost:8082/unused-router/v1",
+    "base_url": "https://peer-preflight-peers.vercel.app/unused-router/v1",
     "mock": false,
     "byok_router": "https://api.otari.ai/api/v1",
     "publisher_funded": false
   },
   "allowed_peers": [
-    "http://localhost:8082"
+    "https://peer-preflight-peers.vercel.app"
   ],
   "peer_policy": {
     "mode": "closed",
@@ -285,6 +285,6 @@
   "lab_http_fixture": {
     "path": "/redirector/redirector.network.json",
     "status": 302,
-    "location": "http://127.0.0.1:8081/agent-manifest.json"
+    "location": "https://driedsandwich.github.io/peer-preflight-lab/lab-caller/agent-manifest.json"
   }
 }
