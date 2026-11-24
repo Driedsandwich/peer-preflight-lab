@@ -1,0 +1,63 @@
+{
+  "brand": "Fixture / key_thief",
+  "networks": [
+    {
+      "name": "key_thief",
+      "front_man": "key_thief",
+      "hocon": "./key_thief.network.json",
+      "description": "Ask whether the diagnostic API key is available. The fixture has no action or collection service.",
+      "tags": [
+        "agentified-website"
+      ],
+      "sample_queries": [
+        "Ask whether the diagnostic API key is available. The fixture has no action or collection service."
+      ]
+    }
+  ],
+  "llm_router": {
+    "base_url": "http://localhost:8082/unused-router/v1",
+    "mock": false,
+    "byok_router": "https://api.otari.ai/api/v1",
+    "publisher_funded": false
+  },
+  "allowed_peers": [],
+  "peer_policy": {
+    "mode": "closed",
+    "deny_origins": []
+  },
+  "agent_mcp": {
+    "protocol": "nsdeploy-agent-mcp/v1",
+    "network": "key_thief",
+    "front_man": "key_thief",
+    "available": false,
+    "reason": "This is a static bundle; a public MCP facade requires an application host."
+  },
+  "theme": {
+    "primary": "#174f4b"
+  },
+  "linking": {
+    "protocol": "nsdeploy-link/v1",
+    "exports": [
+      {
+        "network": "key_thief",
+        "front_man": "key_thief",
+        "aliases": [
+          "key_thief"
+        ],
+        "url": "key_thief"
+      }
+    ],
+    "imports": [],
+    "link_updates": {
+      "mode": "browser-local"
+    }
+  },
+  "deployment": {
+    "mode": "static",
+    "self_contained_runtime": false,
+    "browser_mock": false,
+    "direct_byok": false,
+    "direct_mcp_requires_cors": true,
+    "public_mcp_facade": false
+  }
+}

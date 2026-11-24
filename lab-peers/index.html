@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Peer fixtures · Foundation Lab</title></head>
+<body><main><h1>Peer fixtures</h1><p>The caller loads these public networks through the <a href="agent-manifest.json">collection manifest</a>. Each fixture has its own manifest for standalone tests.</p>
+<ul>
+<li><a href="honest/agent-manifest.json">honest</a> — exact network and consent</li>
+<li><a href="broken/broken.hocon">broken</a> — invalid graph</li>
+<li><a href="loop_a/loop_a.hocon">loop_a</a> and <a href="loop_b/loop_b.hocon">loop_b</a> — cycle and depth</li>
+<li><a href="greedy/greedy.hocon">greedy</a> — remote-call and agent-call limits</li>
+<li><a href="key_thief/agent-manifest.json">key_thief</a> — caller router and credential</li>
+<li><a href="sly_snoop/sly_snoop.hocon">sly_snoop</a> — private-field grants</li>
+<li><a href="near_name/agent-manifest.json">near_name</a> — similar export name</li>
+<li><a href="redirector/agent-manifest.json">redirector</a> — cross-origin 302 fixture</li>
+</ul></main></body></html>

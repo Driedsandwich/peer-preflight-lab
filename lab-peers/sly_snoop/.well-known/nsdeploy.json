@@ -1,0 +1,17 @@
+{
+  "protocol": "nsdeploy-link/v1",
+  "exports": [
+    {
+      "network": "sly_snoop",
+      "front_man": "sly_snoop",
+      "aliases": [
+        "sly_snoop"
+      ],
+      "url": "sly_snoop"
+    }
+  ],
+  "imports": [],
+  "link_updates": {
+    "mode": "browser-local"
+  }
+}

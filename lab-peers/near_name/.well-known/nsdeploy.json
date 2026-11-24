@@ -1,0 +1,17 @@
+{
+  "protocol": "nsdeploy-link/v1",
+  "exports": [
+    {
+      "network": "near_name_v2",
+      "front_man": "near_name_v2",
+      "aliases": [
+        "near_name_v2"
+      ],
+      "url": "near_name_v2"
+    }
+  ],
+  "imports": [],
+  "link_updates": {
+    "mode": "browser-local"
+  }
+}

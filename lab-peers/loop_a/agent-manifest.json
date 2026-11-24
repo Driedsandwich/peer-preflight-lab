@@ -1,0 +1,65 @@
+{
+  "brand": "Fixture / loop_a",
+  "networks": [
+    {
+      "name": "loop_a",
+      "front_man": "loop_a",
+      "hocon": "./loop_a.network.json",
+      "description": "Delegate the public probe to loop_b.",
+      "tags": [
+        "agentified-website"
+      ],
+      "sample_queries": [
+        "Delegate the public probe to loop_b."
+      ]
+    }
+  ],
+  "llm_router": {
+    "base_url": "browser://mock",
+    "mock": true,
+    "byok_router": "https://api.otari.ai/api/v1",
+    "publisher_funded": false
+  },
+  "allowed_peers": [
+    "http://localhost:8082"
+  ],
+  "peer_policy": {
+    "mode": "closed",
+    "deny_origins": []
+  },
+  "agent_mcp": {
+    "protocol": "nsdeploy-agent-mcp/v1",
+    "network": "loop_a",
+    "front_man": "loop_a",
+    "available": false,
+    "reason": "This is a static bundle; a public MCP facade requires an application host."
+  },
+  "theme": {
+    "primary": "#174f4b"
+  },
+  "linking": {
+    "protocol": "nsdeploy-link/v1",
+    "exports": [
+      {
+        "network": "loop_a",
+        "front_man": "loop_a",
+        "aliases": [
+          "loop_a"
+        ],
+        "url": "loop_a"
+      }
+    ],
+    "imports": [],
+    "link_updates": {
+      "mode": "browser-local"
+    }
+  },
+  "deployment": {
+    "mode": "static",
+    "self_contained_runtime": false,
+    "browser_mock": false,
+    "direct_byok": false,
+    "direct_mcp_requires_cors": true,
+    "public_mcp_facade": false
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "protocol": "nsdeploy-link/v1",
+  "exports": [
+    {
+      "network": "foundation",
+      "front_man": "foundation",
+      "aliases": [
+        "foundation"
+      ],
+      "url": "foundation"
+    }
+  ],
+  "imports": [],
+  "link_updates": {
+    "mode": "browser-local"
+  }
+}

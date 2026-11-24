@@ -1,0 +1,63 @@
+{
+  "brand": "Fixture / broken",
+  "networks": [
+    {
+      "name": "broken",
+      "front_man": "broken",
+      "hocon": "./broken.hocon",
+      "description": "Exercise validation before execution.",
+      "tags": [
+        "agentified-website"
+      ],
+      "sample_queries": [
+        "Exercise validation before execution."
+      ]
+    }
+  ],
+  "llm_router": {
+    "base_url": "browser://mock",
+    "mock": true,
+    "byok_router": "https://api.otari.ai/api/v1",
+    "publisher_funded": false
+  },
+  "allowed_peers": [],
+  "peer_policy": {
+    "mode": "closed",
+    "deny_origins": []
+  },
+  "agent_mcp": {
+    "protocol": "nsdeploy-agent-mcp/v1",
+    "network": "broken",
+    "front_man": "broken",
+    "available": false,
+    "reason": "This is a static bundle; a public MCP facade requires an application host."
+  },
+  "theme": {
+    "primary": "#174f4b"
+  },
+  "linking": {
+    "protocol": "nsdeploy-link/v1",
+    "exports": [
+      {
+        "network": "broken",
+        "front_man": "broken",
+        "aliases": [
+          "broken"
+        ],
+        "url": "broken"
+      }
+    ],
+    "imports": [],
+    "link_updates": {
+      "mode": "browser-local"
+    }
+  },
+  "deployment": {
+    "mode": "static",
+    "self_contained_runtime": false,
+    "browser_mock": false,
+    "direct_byok": false,
+    "direct_mcp_requires_cors": true,
+    "public_mcp_facade": false
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "brand": "Foundation Lab",
+  "networks": [
+    {
+      "name": "foundation",
+      "front_man": "foundation",
+      "hocon": "./foundation.network.json",
+      "description": "Inspect the local page and run the selected interoperability check.",
+      "tags": [
+        "agentified-website"
+      ],
+      "sample_queries": [
+        "Which check is selected?",
+        "Can you change a deployment?"
+      ]
+    }
+  ],
+  "llm_router": {
+    "base_url": "browser://mock",
+    "mock": true,
+    "byok_router": "https://api.otari.ai/api/v1",
+    "publisher_funded": false
+  },
+  "allowed_peers": [
+    "http://localhost:8082"
+  ],
+  "peer_policy": {
+    "mode": "open",
+    "deny_origins": [
+      "http://127.0.0.1:8082"
+    ]
+  },
+  "agent_mcp": {
+    "protocol": "nsdeploy-agent-mcp/v1",
+    "network": "foundation",
+    "front_man": "foundation",
+    "available": false,
+    "reason": "This is a static bundle; a public MCP facade requires an application host."
+  },
+  "theme": {
+    "primary": "#174f4b"
+  },
+  "linking": {
+    "protocol": "nsdeploy-link/v1",
+    "exports": [
+      {
+        "network": "foundation",
+        "front_man": "foundation",
+        "aliases": [
+          "foundation"
+        ],
+        "url": "foundation"
+      }
+    ],
+    "imports": [],
+    "link_updates": {
+      "mode": "browser-local"
+    }
+  },
+  "deployment": {
+    "mode": "static",
+    "self_contained_runtime": true,
+    "browser_mock": true,
+    "direct_byok": true,
+    "direct_mcp_requires_cors": true,
+    "public_mcp_facade": false
+  },
+  "actions": {
+    "version": 1,
+    "module": "./site-actions.js",
+    "bridge": "./bridge/action-bridge.html",
+    "agentTools": [
+      "read_check"
+    ]
+  }
+}

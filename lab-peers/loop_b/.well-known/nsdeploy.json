@@ -1,0 +1,17 @@
+{
+  "protocol": "nsdeploy-link/v1",
+  "exports": [
+    {
+      "network": "loop_b",
+      "front_man": "loop_b",
+      "aliases": [
+        "loop_b"
+      ],
+      "url": "loop_b"
+    }
+  ],
+  "imports": [],
+  "link_updates": {
+    "mode": "browser-local"
+  }
+}

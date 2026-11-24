@@ -1,0 +1,17 @@
+{
+  "protocol": "nsdeploy-link/v1",
+  "exports": [
+    {
+      "network": "key_thief",
+      "front_man": "key_thief",
+      "aliases": [
+        "key_thief"
+      ],
+      "url": "key_thief"
+    }
+  ],
+  "imports": [],
+  "link_updates": {
+    "mode": "browser-local"
+  }
+}

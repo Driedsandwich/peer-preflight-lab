@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Interoperability checks · Foundation Lab</title>
+  <link rel="stylesheet" href="lab.css"><script type="module" src="lab.js"></script>
+</head>
+<body>
+<header><div class="bar"><strong>Foundation Lab</strong><nav aria-label="Lab navigation"><a aria-current="page" href="lab.html">Checks</a><a href="index.html">Assistant &amp; BYOK settings</a></nav></div></header>
+<main>
+  <h1>Interoperability checks</h1>
+  <p class="intro">Run the seven MVP checks against two static sites. The default uses the runtime’s browser mock. Scripted checks use an in-memory router and a marked test credential.</p>
+  <div class="layout"><section class="checks" aria-label="MVP checks">
+    <article><h2>Static publication</h2><p>Read the source HOCON, manifest and compiled two-agent graph.</p><button data-probe="publish">Inspect publication</button></article>
+    <article><h2>Default inference</h2><p>Run the published model locally. This check declines optional peer calls.</p><button data-probe="default">Run default model</button></article>
+    <article><h2>Agent and site action</h2><p>Delegate to the inspector and read the page’s current selection.</p><button data-probe="local">Call inspector</button></article>
+    <article><h2>Cross-origin consent</h2><p>Approve or decline loading the exact <code>honest</code> network from the peer origin.</p><button data-probe="honest">Request honest peer</button></article>
+    <article><h2>Router and credential</h2><p>Run a peer that declares a different router. Inspect each request in the ledger.</p><button data-probe="key_thief">Trace test credential</button></article>
+    <article><h2>Private context</h2><p>Compare fields at the same peer with a named grant and with no grant on a second hop.</p><button data-probe="private">Compare field grants</button></article>
+    <article><h2>Failure boundaries</h2><label for="failure">Case</label>
+      <select id="failure"><option value="broken">Invalid network</option><option value="cycle">Cycle · A → B → A</option><option value="depth">Depth · limit 2</option><option value="remote limit">Remote calls · limit 4</option><option value="agent limit">Agent calls · limit 24</option><option value="denied">Denied origin</option><option value="near_name">Near name</option><option value="redirector">Cross-origin redirect · replayed 302</option></select>
+      <button data-probe="stops">Run failure case</button></article>
+  </section>
+  <section class="evidence" aria-labelledby="result-title"><h2 id="result-title">Run evidence</h2>
+    <p id="status" role="status">Choose a check to see its result.</p><div id="results"></div>
+    <h3>Request ledger</h3><p class="note">Caller-side fetch observations. Inference on the scripted route stays in memory. Public file requests use credential mode <code>omit</code>.</p>
+    <div class="scroll"><table><thead><tr><th>Destination</th><th>Purpose</th><th>Credential present</th></tr></thead><tbody id="ledger"></tbody></table></div>
+  </section></div>
+</main>
+<dialog id="consent" aria-labelledby="consent-title"><form method="dialog"><h2 id="consent-title">Allow peer access?</h2><p id="destination"></p><p id="request"></p><p>The caller will load the public network files and run the network here.</p><div class="buttons"><button value="decline" autofocus>Decline</button><button value="allow">Allow once</button></div></form></dialog>
+</body></html>

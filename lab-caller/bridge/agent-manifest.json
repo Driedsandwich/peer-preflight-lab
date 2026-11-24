@@ -1,0 +1,10 @@
+{
+  "networks": [
+    {
+      "name": "foundation"
+    }
+  ],
+  "actions": {
+    "version": 1
+  }
+}

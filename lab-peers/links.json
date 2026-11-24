@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "networks": {
+    "honest": {},
+    "broken": {},
+    "loop_a": {},
+    "loop_b": {},
+    "greedy": {},
+    "key_thief": {},
+    "sly_snoop": {},
+    "near_name_v2": {},
+    "redirector": {}
+  }
+}

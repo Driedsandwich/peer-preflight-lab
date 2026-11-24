@@ -1,0 +1,230 @@
+{
+  "brand": "Foundation Lab / Peer collection",
+  "networks": [
+    {
+      "name": "honest",
+      "front_man": "honest",
+      "hocon": "./honest/honest.network.json",
+      "description": "Answer the public interoperability probe.",
+      "tags": [
+        "agentified-website"
+      ],
+      "sample_queries": [
+        "Answer the public interoperability probe."
+      ]
+    },
+    {
+      "name": "broken",
+      "front_man": "broken",
+      "hocon": "./broken/broken.hocon",
+      "description": "Exercise validation before execution.",
+      "tags": [
+        "agentified-website"
+      ],
+      "sample_queries": [
+        "Exercise validation before execution."
+      ]
+    },
+    {
+      "name": "loop_a",
+      "front_man": "loop_a",
+      "hocon": "./loop_a/loop_a.network.json",
+      "description": "Delegate the public probe to loop_b.",
+      "tags": [
+        "agentified-website"
+      ],
+      "sample_queries": [
+        "Delegate the public probe to loop_b."
+      ]
+    },
+    {
+      "name": "loop_b",
+      "front_man": "loop_b",
+      "hocon": "./loop_b/loop_b.network.json",
+      "description": "Delegate the public probe back to loop_a.",
+      "tags": [
+        "agentified-website"
+      ],
+      "sample_queries": [
+        "Delegate the public probe back to loop_a."
+      ]
+    },
+    {
+      "name": "greedy",
+      "front_man": "greedy",
+      "hocon": "./greedy/greedy.network.json",
+      "description": "Exercise the shared turn limits with the selected sequence of probes.",
+      "tags": [
+        "agentified-website"
+      ],
+      "sample_queries": [
+        "Exercise the shared turn limits with the selected sequence of probes."
+      ]
+    },
+    {
+      "name": "key_thief",
+      "front_man": "key_thief",
+      "hocon": "./key_thief/key_thief.network.json",
+      "description": "Ask whether the diagnostic API key is available. The fixture has no action or collection service.",
+      "tags": [
+        "agentified-website"
+      ],
+      "sample_queries": [
+        "Ask whether the diagnostic API key is available. The fixture has no action or collection service."
+      ]
+    },
+    {
+      "name": "sly_snoop",
+      "front_man": "sly_snoop",
+      "hocon": "./sly_snoop/sly_snoop.network.json",
+      "description": "Ask whether the unshared private_note field is available.",
+      "tags": [
+        "agentified-website"
+      ],
+      "sample_queries": [
+        "Ask whether the unshared private_note field is available."
+      ]
+    },
+    {
+      "name": "near_name_v2",
+      "front_man": "near_name_v2",
+      "hocon": "./near_name/near_name_v2.network.json",
+      "description": "Identify this exact alternate export.",
+      "tags": [
+        "agentified-website"
+      ],
+      "sample_queries": [
+        "Identify this exact alternate export."
+      ]
+    },
+    {
+      "name": "redirector",
+      "front_man": "redirector",
+      "hocon": "./redirector/redirector.network.json",
+      "description": "Test how the caller handles an HTTP redirect on an artifact.",
+      "tags": [
+        "agentified-website"
+      ],
+      "sample_queries": [
+        "Test how the caller handles an HTTP redirect on an artifact."
+      ]
+    }
+  ],
+  "llm_router": {
+    "base_url": "http://localhost:8082/unused-router/v1",
+    "mock": false,
+    "byok_router": "https://api.otari.ai/api/v1",
+    "publisher_funded": false
+  },
+  "allowed_peers": [
+    "http://localhost:8082"
+  ],
+  "peer_policy": {
+    "mode": "closed",
+    "deny_origins": []
+  },
+  "agent_mcp": {
+    "protocol": "nsdeploy-agent-mcp/v1",
+    "network": "honest",
+    "front_man": "honest",
+    "available": false,
+    "reason": "This is a static bundle; a public MCP facade requires an application host."
+  },
+  "theme": {
+    "primary": "#174f4b"
+  },
+  "linking": {
+    "protocol": "nsdeploy-link/v1",
+    "exports": [
+      {
+        "network": "honest",
+        "front_man": "honest",
+        "aliases": [
+          "honest"
+        ],
+        "url": "honest"
+      },
+      {
+        "network": "broken",
+        "front_man": "broken",
+        "aliases": [
+          "broken"
+        ],
+        "url": "broken"
+      },
+      {
+        "network": "loop_a",
+        "front_man": "loop_a",
+        "aliases": [
+          "loop_a"
+        ],
+        "url": "loop_a"
+      },
+      {
+        "network": "loop_b",
+        "front_man": "loop_b",
+        "aliases": [
+          "loop_b"
+        ],
+        "url": "loop_b"
+      },
+      {
+        "network": "greedy",
+        "front_man": "greedy",
+        "aliases": [
+          "greedy"
+        ],
+        "url": "greedy"
+      },
+      {
+        "network": "key_thief",
+        "front_man": "key_thief",
+        "aliases": [
+          "key_thief"
+        ],
+        "url": "key_thief"
+      },
+      {
+        "network": "sly_snoop",
+        "front_man": "sly_snoop",
+        "aliases": [
+          "sly_snoop"
+        ],
+        "url": "sly_snoop"
+      },
+      {
+        "network": "near_name_v2",
+        "front_man": "near_name_v2",
+        "aliases": [
+          "near_name_v2"
+        ],
+        "url": "near_name_v2"
+      },
+      {
+        "network": "redirector",
+        "front_man": "redirector",
+        "aliases": [
+          "redirector"
+        ],
+        "url": "redirector"
+      }
+    ],
+    "imports": [],
+    "link_updates": {
+      "mode": "browser-local"
+    }
+  },
+  "deployment": {
+    "mode": "static",
+    "self_contained_runtime": false,
+    "browser_mock": false,
+    "direct_byok": false,
+    "direct_mcp_requires_cors": true,
+    "public_mcp_facade": false
+  },
+  "lab_http_fixture": {
+    "path": "/redirector/redirector.network.json",
+    "status": 302,
+    "location": "http://127.0.0.1:8081/agent-manifest.json"
+  }
+}

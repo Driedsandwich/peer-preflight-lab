@@ -1,0 +1,7 @@
+{
+  "protocol": "nsdeploy-agent-mcp/v1",
+  "network": "key_thief",
+  "front_man": "key_thief",
+  "available": false,
+  "reason": "This is a static bundle; a public MCP facade requires an application host."
+}
